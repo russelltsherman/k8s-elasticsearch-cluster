@@ -3,11 +3,31 @@ kind: Service
 metadata:
   name: kibana
   labels:
-    component: kibana
+    component: elk
+    role: kibana
 spec:
   selector:
-    component: kibana
+    component: elk
+    role: kibana
+  type: NodePort
   ports:
   - name: http
     port: 80
-    targetPort: http
+    targetPort: 5601
+    protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kibana
+  annotations:
+    traefik.frontend.rule.type: PathPrefix
+spec:
+  rules:
+  - host: kibana.internal.carlosedp.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kibana
+          servicePort: 80

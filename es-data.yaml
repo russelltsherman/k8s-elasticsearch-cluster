@@ -6,7 +6,7 @@ metadata:
     component: elasticsearch
     role: data
 spec:
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -24,7 +24,7 @@ spec:
           privileged: true
       containers:
       - name: es-data
-        image: quay.io/pires/docker-elasticsearch-kubernetes:6.1.2
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2
         env:
         - name: NAMESPACE
           valueFrom:
@@ -57,12 +57,14 @@ spec:
         livenessProbe:
           tcpSocket:
             port: transport
-          initialDelaySeconds: 20
+          initialDelaySeconds: 180
           periodSeconds: 10
         volumeMounts:
         - name: storage
           mountPath: /data
       volumes:
-          - emptyDir:
-              medium: ""
-            name: storage
+      - name: storage
+        # If no persistent storage is deployed, swap comment on lines below
+        #emptyDir: {}
+        persistentVolumeClaim:
+          claimName: elasticsearch-storage

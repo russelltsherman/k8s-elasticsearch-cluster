@@ -1,0 +1,34 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: elasticsearch-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: elasticsearch-client
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: elasticsearch-master
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+

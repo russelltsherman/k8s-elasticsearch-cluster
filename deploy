@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+if [ -z "${KUBECONFIG}" ]; then
+    export KUBECONFIG=~/.kube/config
+fi
+
+# CAUTION - setting NAMESPACE will deploy most components to the given namespace
+# however some are hardcoded to 'monitoring'. Only use if you have reviewed all manifests.
+
+if [ -z "${NAMESPACE}" ]; then
+    NAMESPACE=logging
+fi
+
+kubectl create namespace "$NAMESPACE"
+
+kctl() {
+    kubectl --namespace "$NAMESPACE" "$@"
+}
+
+kctl apply -f 
+
+# Deploy Elasticsearch service
+kctl apply -f es-discovery-svc.yaml
+kctl apply -f es-svc.yaml
+kctl apply -f persistent-volumes.yaml
+
+# Deploy Elasticsearch master node and wait until it's up
+kctl apply -f es-master.yaml
+until kctl rollout status -f es-master.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch client node and wait until it's up
+kctl apply -f es-client.yaml
+until kctl rollout status -f es-client.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch data node and wait until it's up
+kctl apply -f es-data.yaml
+until kctl rollout status -f es-data.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Curator
+kctl apply -f es-curator-config.yaml
+kctl apply -f es-curator_v1beta1.yaml
+
+# Deploy Kibana
+kctl apply -f kibana-service-account.yaml
+kctl apply -f kibana.yaml
+kctl apply -f kibana-svc.yaml
+
+# Deploy Fluentd
+kctl apply -f fluentd-es-configmap.yaml
+kctl apply -f fluentd-es-ds.yaml
+
+echo "done!"
+

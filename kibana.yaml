@@ -1,32 +1,35 @@
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: v1
+kind: ReplicationController
 metadata:
   name: kibana
   labels:
-    component: kibana
+    component: elk
+    role: kibana
 spec:
   replicas: 1
   selector:
-    matchLabels:
-     component: kibana
+    component: elk
+    role: kibana
   template:
     metadata:
       labels:
-        component: kibana
+        component: elk
+        role: kibana
     spec:
+      serviceAccount: elk
       containers:
       - name: kibana
-        image: docker.elastic.co/kibana/kibana-oss:6.1.2
+        image: carlosedp/docker-kibana:6.2.2
         env:
+        - name: KIBANA_ES_URL
+          value: "http://elasticsearch:9200"
+        - name: KUBERNETES_TRUST_CERT
+          value: "true"
         - name: CLUSTER_NAME
           value: myesdb
         - name: SERVER_BASEPATH
-          value: /api/v1/namespaces/default/services/kibana:http/proxy
-        resources:
-          limits:
-            cpu: 1000m
-          requests:
-            cpu: 100m
+          value: kibana.internal.carlosedp.com
         ports:
         - containerPort: 5601
           name: http
+          protocol: TCP

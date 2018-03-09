@@ -6,7 +6,7 @@ metadata:
     component: elasticsearch
     role: client
 spec:
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -24,7 +24,7 @@ spec:
           privileged: true
       containers:
       - name: es-client
-        image: quay.io/pires/docker-elasticsearch-kubernetes:6.1.2
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2
         env:
         - name: NAMESPACE
           valueFrom:
@@ -43,7 +43,7 @@ spec:
         - name: HTTP_ENABLE
           value: "true"
         - name: ES_JAVA_OPTS
-          value: -Xms256m -Xmx256m
+          value: -Xms1g -Xmx1g
         - name: NETWORK_HOST
           value: _site_,_lo_
         - name: PROCESSORS
@@ -58,19 +58,23 @@ spec:
           name: http
         - containerPort: 9300
           name: transport
-        livenessProbe:
-          tcpSocket:
-            port: transport
-        readinessProbe:
-          httpGet:
-            path: /_cluster/health
-            port: http
-          initialDelaySeconds: 20
-          timeoutSeconds: 5
+        #livenessProbe:
+        #  tcpSocket:
+        #    port: transport
+        #  initialDelaySeconds: 180
+        #  periodSeconds: 60
+        #readinessProbe:
+        #  httpGet:
+        #    path: /_cluster/health
+        #    port: http
+        #  initialDelaySeconds: 180
+        #  timeoutSeconds: 60
         volumeMounts:
         - name: storage
           mountPath: /data
       volumes:
-          - emptyDir:
-              medium: ""
-            name: storage
+      - name: storage
+        # If no persistent storage is deployed, swap comment on lines below
+        #emptyDir: {}
+        persistentVolumeClaim:
+          claimName: elasticsearch-client
