@@ -29,6 +29,8 @@ spec:
           value: myesdb
         - name: SERVER_BASEPATH
           value: kibana.internal.carlosedp.com
+        - name: "ES_PLUGINS_INSTALL"
+          value: "x-pack"
         ports:
         - containerPort: 5601
           name: http

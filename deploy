@@ -17,8 +17,6 @@ kctl() {
     kubectl --namespace "$NAMESPACE" "$@"
 }
 
-kctl apply -f 
-
 # Deploy Elasticsearch service
 kctl apply -f es-discovery-svc.yaml
 kctl apply -f es-svc.yaml

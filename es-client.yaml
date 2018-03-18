@@ -24,7 +24,7 @@ spec:
           privileged: true
       containers:
       - name: es-client
-        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
         env:
         - name: NAMESPACE
           valueFrom:
@@ -50,6 +50,8 @@ spec:
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
+        - name: "ES_PLUGINS_INSTALL"
+          value: "x-pack"
         resources:
           limits:
             cpu: 1
@@ -61,13 +63,13 @@ spec:
         #livenessProbe:
         #  tcpSocket:
         #    port: transport
-        #  initialDelaySeconds: 180
+        #  initialDelaySeconds: 360
         #  periodSeconds: 60
         #readinessProbe:
         #  httpGet:
         #    path: /_cluster/health
         #    port: http
-        #  initialDelaySeconds: 180
+        #  initialDelaySeconds: 360
         #  timeoutSeconds: 60
         volumeMounts:
         - name: storage
