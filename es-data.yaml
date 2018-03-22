@@ -64,9 +64,15 @@ spec:
         volumeMounts:
         - name: storage
           mountPath: /data
+        - name: config
+          mountpath: /elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
       volumes:
       - name: storage
         # If no persistent storage is deployed, swap comment on lines below
         #emptyDir: {}
         persistentVolumeClaim:
           claimName: elasticsearch-storage
+      -name : config
+        configMap:
+          name: es-configmap
