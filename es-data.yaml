@@ -43,16 +43,16 @@ spec:
         - name: HTTP_ENABLE
           value: "false"
         - name: ES_JAVA_OPTS
-          value: -Xms512m -Xmx512m
+          value: -Xms1g -Xmx1g
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
-        - name: "ES_PLUGINS_INSTALL"
-          value: "x-pack"
+        #- name: "ES_PLUGINS_INSTALL"
+        #  value: "x-pack"
         resources:
           limits:
-            cpu: 1
+            cpu: 2
         ports:
         - containerPort: 9300
           name: transport
@@ -65,14 +65,12 @@ spec:
         - name: storage
           mountPath: /data
         - name: config
-          mountpath: /elasticsearch/config/elasticsearch.yml
+          mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
       volumes:
       - name: storage
-        # If no persistent storage is deployed, swap comment on lines below
-        #emptyDir: {}
         persistentVolumeClaim:
           claimName: elasticsearch-storage
-      -name : config
+      - name : config
         configMap:
           name: es-configmap

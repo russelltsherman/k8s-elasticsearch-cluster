@@ -34,9 +34,10 @@ data:
         ping.unicast.hosts: ${DISCOVERY_SERVICE}
         minimum_master_nodes: ${NUMBER_OF_MASTERS}
 
-    xpack.license.self_generated.type: basic
-    xpack.security.enabled: false
+    #xpack.license.self_generated.type: basic
+    #xpack.security.enabled: false
     #xpack.monitoring.enabled: false
+    #xpack.ml.enabled: false
 kind: ConfigMap
 metadata:
   creationTimestamp: null

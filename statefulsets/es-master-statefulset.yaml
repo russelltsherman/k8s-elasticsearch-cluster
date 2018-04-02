@@ -1,22 +1,13 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: elasticsearch-master
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: es-master
+  namespace: logging
   labels:
     component: elasticsearch
     role: master
 spec:
+  serviceName: elasticsearch-logging
   replicas: 1
   template:
     metadata:
@@ -36,6 +27,12 @@ spec:
       containers:
       - name: es-master
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
+        resources:
+          limits:
+            cpu: 1
+        ports:
+        - containerPort: 9300
+          name: transport
         env:
         - name: NAMESPACE
           valueFrom:
@@ -65,27 +62,26 @@ spec:
               resource: limits.cpu
         #- name: "ES_PLUGINS_INSTALL"
         #  value: "x-pack"
-        resources:
-          limits:
-            cpu: 1
-        ports:
-        - containerPort: 9300
-          name: transport
         livenessProbe:
           tcpSocket:
             port: transport
           initialDelaySeconds: 360
           periodSeconds: 30
         volumeMounts:
-        - name: storage
-          mountPath: /data
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
+        - name: storage-master
+          mountPath: /data
       volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: elasticsearch-master
       - name : config
         configMap:
           name: es-configmap
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-master
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi

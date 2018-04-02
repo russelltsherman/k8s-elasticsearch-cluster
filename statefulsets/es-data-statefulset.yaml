@@ -1,28 +1,19 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: elasticsearch-master
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: apps/v1beta1
-kind: Deployment
-metadata:
-  name: es-master
+  name: es-data
+  namespace: logging
   labels:
     component: elasticsearch
-    role: master
+    role: data
 spec:
-  replicas: 1
+  serviceName: elasticsearch-logging
+  replicas: 2
   template:
     metadata:
       labels:
         component: elasticsearch
-        role: master
+        role: data
     spec:
       initContainers:
       - name: init-sysctl
@@ -34,8 +25,14 @@ spec:
         securityContext:
           privileged: true
       containers:
-      - name: es-master
+      - name: es-data
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
+        resources:
+          limits:
+            cpu: 2
+        ports:
+        - containerPort: 9300
+          name: transport
         env:
         - name: NAMESPACE
           valueFrom:
@@ -47,45 +44,52 @@ spec:
               fieldPath: metadata.name
         - name: CLUSTER_NAME
           value: myesdb
-        - name: NUMBER_OF_MASTERS
-          value: "1"
         - name: NODE_MASTER
-          value: "true"
-        - name: NODE_INGEST
           value: "false"
-        - name: NODE_DATA
+        - name: NODE_INGEST
           value: "false"
         - name: HTTP_ENABLE
           value: "false"
         - name: ES_JAVA_OPTS
-          value: -Xms512m -Xmx512m
+          value: -Xms1g -Xmx1g
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
         #- name: "ES_PLUGINS_INSTALL"
         #  value: "x-pack"
-        resources:
-          limits:
-            cpu: 1
-        ports:
-        - containerPort: 9300
-          name: transport
         livenessProbe:
           tcpSocket:
             port: transport
           initialDelaySeconds: 360
-          periodSeconds: 30
+          periodSeconds: 10
         volumeMounts:
-        - name: storage
-          mountPath: /data
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
+        - name: storage
+          mountPath: /data
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                  - data
+              topologyKey: kubernetes.io/hostname
       volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: elasticsearch-master
-      - name : config
+      - name : config-data
         configMap:
           name: es-configmap
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi

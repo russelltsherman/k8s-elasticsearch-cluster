@@ -1,28 +1,19 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: elasticsearch-master
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
+# Additional Data node in case StatefulSet was not used
 ---
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: es-master
+  name: es-data2
   labels:
     component: elasticsearch
-    role: master
+    role: data
 spec:
   replicas: 1
   template:
     metadata:
       labels:
         component: elasticsearch
-        role: master
+        role: data
     spec:
       initContainers:
       - name: init-sysctl
@@ -34,7 +25,7 @@ spec:
         securityContext:
           privileged: true
       containers:
-      - name: es-master
+      - name: es-data
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
         env:
         - name: NAMESPACE
@@ -47,18 +38,14 @@ spec:
               fieldPath: metadata.name
         - name: CLUSTER_NAME
           value: myesdb
-        - name: NUMBER_OF_MASTERS
-          value: "1"
         - name: NODE_MASTER
-          value: "true"
-        - name: NODE_INGEST
           value: "false"
-        - name: NODE_DATA
+        - name: NODE_INGEST
           value: "false"
         - name: HTTP_ENABLE
           value: "false"
         - name: ES_JAVA_OPTS
-          value: -Xms512m -Xmx512m
+          value: -Xms1g -Xmx1g
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
@@ -75,7 +62,7 @@ spec:
           tcpSocket:
             port: transport
           initialDelaySeconds: 360
-          periodSeconds: 30
+          periodSeconds: 10
         volumeMounts:
         - name: storage
           mountPath: /data
@@ -85,7 +72,19 @@ spec:
       volumes:
       - name: storage
         persistentVolumeClaim:
-          claimName: elasticsearch-master
+          claimName: elasticsearch-storage2
       - name : config
         configMap:
           name: es-configmap
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: elasticsearch-storage2
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+
