@@ -21,13 +21,13 @@ if [ ! -z "${ES_PLUGINS_INSTALL}" ]; then
    IFS=$OLDIFS
 fi
 
-sed -i "s;.*elasticsearch\.url:.*;elasticsearch\.url: ${KIBANA_ES_URL};" "${KIBANA_CONF_FILE}"
-sed -i "s;.*server\.host:.*;server\.host: ${KIBANA_HOST};" "${KIBANA_CONF_FILE}"
+#sed -i "s;.*elasticsearch\.url:.*;elasticsearch\.url: ${KIBANA_ES_URL};" "${KIBANA_CONF_FILE}"
+#sed -i "s;.*server\.host:.*;server\.host: ${KIBANA_HOST};" "${KIBANA_CONF_FILE}"
 
-if [ -n "${KIBANA_INDEX}" ]; then
-    echo "setting index!"
-    sed -i "s;.*kibana\.index:.*;kibana\.index: ${KIBANA_INDEX};" "${KIBANA_CONF_FILE}"
-fi
+#if [ -n "${KIBANA_INDEX}" ]; then
+#    echo "setting index!"
+#    sed -i "s;.*kibana\.index:.*;kibana\.index: ${KIBANA_INDEX};" "${KIBANA_CONF_FILE}"
+#fi
 
 # mesos-friendly change
 unset HOST
