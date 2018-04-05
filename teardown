@@ -31,12 +31,11 @@ kctl delete -f es-curator_v1beta1.yaml
 # Delete Elasticsearch nodes
 kctl delete -f es-master.yaml
 kctl delete -f es-client.yaml
-kctl delete -f es-data.yaml
+kctl delete -f es-data-statefulset.yaml
 
 # Delete Elasticsearch services
 kctl delete -f es-discovery-svc.yaml
 kctl delete -f es-svc.yaml
-kctl delete -f persistent-volumes.yaml
 
 # Delete namespace
 kubectl delete namespace $NAMESPACE

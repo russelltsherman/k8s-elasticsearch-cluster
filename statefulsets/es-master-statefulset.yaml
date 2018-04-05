@@ -9,6 +9,10 @@ metadata:
 spec:
   serviceName: elasticsearch-logging
   replicas: 1
+  selector:
+    matchLabels:
+      component: elasticsearch
+      role: master
   template:
     metadata:
       labels:
@@ -28,8 +32,10 @@ spec:
       - name: es-master
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
         resources:
-          limits:
+          requests:
             cpu: 1
+          limits:
+            cpu: 2
         ports:
         - containerPort: 9300
           name: transport
