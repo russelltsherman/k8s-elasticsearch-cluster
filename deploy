@@ -24,15 +24,15 @@ kctl apply -f es-configmap.yaml
 
 # Deploy Elasticsearch master node and wait until it's up
 kctl apply -f es-master.yaml
-until kctl rollout status -f es-master.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+until kctl rollout status deployment es-master  > /dev/null 2>&1; do sleep 1; printf "."; done
 
 # Deploy Elasticsearch client node and wait until it's up
 kctl apply -f es-client.yaml
-until kctl rollout status -f es-client.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+until kctl rollout status deployment es-client  > /dev/null 2>&1; do sleep 1; printf "."; done
 
 # Deploy Elasticsearch data node and wait until it's up
 kctl apply -f es-data-statefulset.yaml
-until kctl rollout status -f es-data-statefulset.yaml  > /dev/null 2>&1; do sleep 1; printf "."; done
+until kctl rollout status statefulset es-data  > /dev/null 2>&1; do sleep 1; printf "."; done
 
 # Deploy Curator
 kctl apply -f es-curator-config.yaml
