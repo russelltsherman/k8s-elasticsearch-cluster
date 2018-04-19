@@ -39,9 +39,11 @@ kctl apply -f es-curator-config.yaml
 kctl apply -f es-curator_v1beta1.yaml
 
 # Deploy Kibana
+kctl apply -f kibana-configmap.yaml
+kctl apply -f kibana-external-ingress.yaml
 kctl apply -f kibana-service-account.yaml
-kctl apply -f kibana.yaml
 kctl apply -f kibana-svc.yaml
+kctl apply -f kibana.yaml
 
 # Deploy Fluentd
 kctl apply -f fluentd-es-configmap.yaml

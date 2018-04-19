@@ -12,7 +12,7 @@ spec:
   ports:
   - name: http
     port: 9200
-  type: LoadBalancer
+  type: NodePort
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress

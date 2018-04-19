@@ -30,7 +30,7 @@ spec:
           privileged: true
       containers:
       - name: es-data
-        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.3
         resources:
           limits:
             cpu: 3
@@ -71,7 +71,7 @@ spec:
           periodSeconds: 10
         readinessProbe:
           tcpSocket:
-            port: transport 
+            port: transport
           initialDelaySeconds: 30
           periodSeconds: 20
         volumeMounts:

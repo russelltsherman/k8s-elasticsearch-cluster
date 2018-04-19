@@ -35,7 +35,7 @@ spec:
           privileged: true
       containers:
       - name: es-master
-        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.3
         env:
         - name: NAMESPACE
           valueFrom:
@@ -74,8 +74,13 @@ spec:
         livenessProbe:
           tcpSocket:
             port: transport
-          initialDelaySeconds: 360
-          periodSeconds: 30
+          initialDelaySeconds: 180
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: transport
+          initialDelaySeconds: 30
+          periodSeconds: 20
         volumeMounts:
         - name: storage
           mountPath: /data

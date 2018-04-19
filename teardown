@@ -20,9 +20,11 @@ kctl delete -f fluentd-es-configmap.yaml
 kctl delete -f fluentd-es-ds.yaml
 
 # Delete Kibana
+kctl delete -f kibana-configmap.yaml
+kctl delete -f kibana-external-ingress.yaml
 kctl delete -f kibana-service-account.yaml
-kctl delete -f kibana-controller.yaml
-kctl delete -f kibana-service-account.yaml
+kctl delete -f kibana-svc.yaml
+kctl delete -f kibana.yaml
 
 # Delete Curator
 kctl delete -f es-curator-config.yaml
@@ -36,6 +38,7 @@ kctl delete -f es-data-statefulset.yaml
 # Delete Elasticsearch services
 kctl delete -f es-discovery-svc.yaml
 kctl delete -f es-svc.yaml
+kctl delete -f es-configmap.yaml
 
 # Delete namespace
 kubectl delete namespace $NAMESPACE

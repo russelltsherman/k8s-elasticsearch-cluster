@@ -1,5 +1,4 @@
-#FROM carlosedp/docker-elasticsearch:6.2.2
-FROM carlosedp/docker-elasticsearch-debian:6.2.2-arm64
+FROM carlosedp/docker-elasticsearch:6.2.3-arm64
 
 # Override config, otherwise plug-in install will fail
 ADD config /elasticsearch/config

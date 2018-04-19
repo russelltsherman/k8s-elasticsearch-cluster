@@ -1,11 +1,11 @@
-FROM carlosedp/debian-oraclejre:8-161-arm64
+FROM carlosedp/debian-oraclejava:8-172-arm64
 
 ENV JAVA_HOME=/opt/java
 
 # Export HTTP & Transport
 EXPOSE 9200 9300
 
-ENV ES_VERSION 6.2.2
+ENV ES_VERSION 6.2.3
 
 ENV DOWNLOAD_URL "https://artifacts.elastic.co/downloads/elasticsearch"
 ENV ES_TARBAL "${DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.tar.gz"

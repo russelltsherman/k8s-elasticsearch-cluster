@@ -1,5 +1,9 @@
 # kubernetes-elasticsearch-cluster
-Elasticsearch (6.1.2) cluster on top of Kubernetes made easy.
+Elasticsearch cluster on top of Kubernetes made easy.
+
+These files are the project manifests and image generation files used on the article https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9.
+
+The images in this project were built for the ARM64 platform.
 
 ### Table of Contents
 
@@ -25,7 +29,7 @@ Elasticsearch best-practices recommend to separate nodes in three roles:
 * `Client` nodes - intended for client usage, no data, with HTTP API
 * `Data` nodes - intended for storing and indexing data, no HTTP API
 
-Given this, I'm going to demonstrate how to provision a production grade scenario consisting of 3 master, 2 client and 2 data nodes.
+Given this, I'm going to demonstrate how to provision a production grade scenario consisting of 1 master, 1 client and 2 data nodes.
 
 <a id="important-notes">
 
@@ -34,48 +38,67 @@ Given this, I'm going to demonstrate how to provision a production grade scenari
 * Elasticsearch pods need for an init-container to run in privileged mode, so it can set some VM options. For that to happen, the `kubelet` should be running with args `--allow-privileged`, otherwise
 the init-container will fail to run.
 
-* By default, `ES_JAVA_OPTS` is set to `-Xms256m -Xmx256m`. This is a *very low* value but many users, i.e. `minikube` users, were having issues with pods getting killed because hosts were out of memory.
-One can change this in the deployment descriptors available in this repository.
+* By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository.
 
-* As of the moment, Kubernetes pod descriptors use an `emptyDir` for storing data in each data node container. This is meant to be for the sake of simplicity and should be adapted according to one's storage needs.
+* In this project,the pods use the Default `StorageClass` for storing data in each data node container. It could be adapted to other storage targets according to one's needs.
 
-* The [stateful](stateful) directory contains an example which deploys the data pods as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
+* The data pods are deployed as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
 
-* By default, `PROCESSORS` is set to `1`. This may not be enough for some deployments, especially at startup time. Adjust `resources.limits.cpu` and/or `livenessProbe` accordingly if required. Note that `resources.limits.cpu` must be an integer.
+* By default, `PROCESSORS` is set to `1` with a limit of `3` CPUs. This may not be enough for some deployments, especially at startup time. Adjust `resources.limits.cpu` and/or `livenessProbe` accordingly if required. Note that `resources.limits.cpu` must be an integer.
 
 <a id="pre-requisites">
 
 ## Pre-requisites
 
-* Kubernetes cluster with **alpha features enabled** (tested with v1.7.2 on top of [Vagrant + CoreOS](https://github.com/pires/kubernetes-vagrant-coreos-cluster)), thas's because curator
- is a CronJob object which comes from batch/v2alpha1, to enable it, just add
- `--runtime-config=batch/v2alpha1=true` into your kube-apiserver options.
+* Kubernetes cluster with **alpha features enabled** (tested with v1.9.3 on-premises cluster), thas's because curator is a CronJob object which comes from batch/v2alpha1.
 * `kubectl` configured to access the cluster master API Server
 
 <a id="build-images">
 
-## Build images (optional)
+## Build images
 
-Providing one's own version of [the images automatically built from this repository](https://github.com/pires/docker-elasticsearch-kubernetes) will not be supported. This is an *optional* step. One has been warned.
-
-## Test
+The project uses images built for the ARM64 platform stored in my [Dockerhub account](https://hub.docker.com/r/carlosedp/). The images can be built in the `images` dir with the provided script or manually. In case of building for other platforms (AMD64 for example), adjustments need to be done on the dependencies.
 
 ### Deploy
 
+Use the `deploy` script or follow it manually (these commands deploy the full stack).
+
 ```
-kubectl create -f es-discovery-svc.yaml
-kubectl create -f es-svc.yaml
-kubectl create -f es-master.yaml
-kubectl rollout status -f es-master.yaml
-kubectl create -f es-client.yaml
-kubectl rollout status -f es-client.yaml
-kubectl create -f es-data.yaml
-kubectl rollout status -f es-data.yaml
+kubectl create namespace logging
+alias kctl='kubectl --namespace logging'
+
+kctl apply -f es-discovery-svc.yaml
+kctl apply -f es-svc.yaml
+kctl apply -f es-configmap.yaml
+
+# Deploy Elasticsearch master node and wait until it's up
+kctl apply -f es-master.yaml
+
+# Deploy Elasticsearch client node and wait until it's up
+kctl apply -f es-client.yaml
+
+# Deploy Elasticsearch data node and wait until it's up
+kctl apply -f es-data-statefulset.yaml
+
+# Deploy Curator
+kctl apply -f es-curator-config.yaml
+kctl apply -f es-curator_v1beta1.yaml
+
+# Deploy Kibana
+kctl apply -f kibana-configmap.yaml
+kctl apply -f kibana-external-ingress.yaml
+kctl apply -f kibana-service-account.yaml
+kctl apply -f kibana-svc.yaml
+kctl apply -f kibana.yaml
+
+# Deploy Fluentd
+kctl apply -f fluentd-es-configmap.yaml
+kctl apply -f fluentd-es-ds.yaml
 ```
 
 Check one of the Elasticsearch master nodes logs:
 ```
-$ kubectl get svc,deployment,pods -l component=elasticsearch
+$ kubectl get svc,deployment,statefulsets,pods -l component=elasticsearch
 NAME                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 svc/elasticsearch             ClusterIP   10.100.220.56   <none>        9200/TCP   2m
 svc/elasticsearch-discovery   ClusterIP   10.100.140.50   <none>        9300/TCP   2m
@@ -142,9 +165,9 @@ As we can assert, the cluster is up and running. Easy, wasn't it?
 
 ### Access the service
 
-*Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](http://kubernetes.io/v1.1/docs/user-guide/services.html#type-loadbalancer). While it's supported within this example service descriptor, its usage is out of scope of this document, for now.
+*Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
 
-*Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can uncomment the field in [es-svc.yaml](https://github.com/pires/kubernetes-elasticsearch-cluster/blob/master/es-svc.yaml).
+*Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can uncomment the field in `es-svc.yaml`.
 ```
 $ kubectl get svc elasticsearch
 NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
@@ -246,17 +269,6 @@ kubectl create -f es-data-pdb.yaml
 
 **Note:** This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
 
-<a id="helm">
-
-## Deploy with Helm
-
-[Helm](https://github.com/kubernetes/helm) charts for a basic (non-stateful) ElasticSearch deployment are maintained at https://github.com/clockworksoul/helm-elasticsearch. With Helm properly installed and configured, standing up a complete cluster is almost trivial:
-
-```
-$ git clone https://github.com/clockworksoul/helm-elasticsearch.git
-$ helm install helm-elasticsearch
-```
-
 <a id="plugins">
 
 ## Install plug-ins
@@ -267,7 +279,7 @@ The image used in this repo is very minimalist. However, one can install additio
   value: "repository-gcs,repository-s3"
 ```
 
-**Note:** The X-Pack plugin does not currently work with the `quay.io/pires/docker-elasticsearch-kubernetes` image. See Issue #102
+This is not tested in current image, please report on Issues any errors or successes.
 
 <a id="curator">
 
@@ -277,15 +289,6 @@ Additionally, one can run a [CronJob](http://kubernetes.io/docs/user-guide/cron-
 
 ```
 kubectl create -f es-curator-config.yaml
-```
-
-Kubernetes 1.7:
-```
-kubectl create -f es-curator_v2alpha1.yaml
-```
-
-Kubernetes 1.8+:
-```
 kubectl create -f es-curator_v1beta1.yaml
 ```
 
@@ -297,7 +300,7 @@ NAME      SCHEDULE    SUSPEND   ACTIVE    LAST-SCHEDULE
 curator   1 0 * * *   False     0         <none>
 ```
 
-The job is configured to run once a day at _1 minute past midnight and delete indices that are older than 3 days_.
+The job is configured to run once a day at _1 minute past midnight and delete indices that are older than 30 days_.
 
 **Notes**
 
@@ -312,31 +315,29 @@ kubectl delete cronjob curator
 kubectl delete configmap curator-config
 ```
 
-Various parameters of the cluster, including replica count and memory allocations, can be adjusted by editing the `helm-elasticsearch/values.yaml` file. For information about Helm, please consult the [complete Helm documentation](https://github.com/kubernetes/helm/blob/master/docs/index.md).
-
-<a id="kibana>
+<a id="kibana">
 
 ## Kibana
-
-**ATTENTION**: This is community supported so it most probably is out-of-date.
 
 Additionally, one can also add Kibana to the mix. In order to do so, one can use the Elastic upstream open source docker image without x-pack.
 
 ### Deploy
 
 ```
-kubectl create -f kibana.yaml
-kubectl create -f kibana-svc.yaml
+kubectl apply -f kibana-configmap.yaml
+kubectl apply -f kibana-external-ingress.yaml
+kubectl apply -f kibana-service-account.yaml
+kubectl apply -f kibana-svc.yaml
+kubectl apply -f kibana.yaml
 ```
 
-Kibana will be available through service `kibana`, and one will be able to access it from within the cluster or
-proxy it through the Kubernetes API Server, as follows:
+Kibana will be available through service `kibana`, and one will be able to access it from within the cluster or proxy it through the Kubernetes API Server, as follows:
 
 ```
 https://<API_SERVER_URL>/api/v1/namespaces/default/services/kibana:http/proxy
 ```
 
-One can also create an Ingress to expose the service publicly or simply use the service nodeport.
+There is also an Ingress to expose the service publicly or simply use the service nodeport.
 In the case one proceeds to do so, one must change the environment variable `SERVER_BASEPATH` to the match their environment.
 
 ## FAQ
@@ -346,7 +347,7 @@ The default value for this environment variable is 2, meaning a cluster will nee
 
 
 ### How can I customize `elasticsearch.yaml`?
-Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/config/` [(see the Elasticsearch docs for more)](https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html#config-files-location). Another option would be to build one's own image from  [this repository](https://github.com/pires/docker-elasticsearch-kubernetes)
+Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/config/` [(see the Elasticsearch docs for more)](https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html#config-files-location) or edit the provided ConfigMap.
 
 ## Troubleshooting
 
