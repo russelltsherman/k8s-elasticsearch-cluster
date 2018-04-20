@@ -29,22 +29,25 @@ ARCHITECTURES=(arm64)
 IMAGES=(debian-oraclejava docker-elasticsearch docker-elasticsearch-kubernetes docker-elasticsearch-curator fluentd-elasticsearch docker-kibana)
 VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSION $ES_VERSION)
 
-num_img = $((${#IMAGES[*]}-1))
+num_img=$((${#IMAGES[*]}-1))
 
-for I in {0..$num_img}; do
-
+for I in $(seq 0 $num_img); do
     ARCH_LIST=''
     for ARCH in $ARCHITECTURES; do
-        ARCH_LIST='linux/$ARCH $ARCH_LIST'
+        ARCH_LIST="linux/$ARCH $ARCH_LIST"
         IMAGE=${IMAGES[$I]}
         VERSION=${VERSIONS[$I]}
-
+        
+        echo "Building image $IMAGE version $VERSION"
         docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH ./$IMAGE
+        echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
     done
 
     # Generate the manifests for the images
+    echo "Generating manifests for image $IMAGE"
     manifest-tool push from-args --platforms $ARCH_LIST --template "$IMAGE:$VERSION-ARCH" --target "$IMAGE:latest"
     manifest-tool push from-args --platforms $ARCH_LIST --template "$IMAGE:$VERSION-ARCH" --target "$IMAGE:$VERSION"
 
+    echo ""
 done
