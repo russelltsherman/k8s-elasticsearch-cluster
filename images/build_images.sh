@@ -46,8 +46,8 @@ for I in $(seq 0 $num_img); do
 
     # Generate the manifests for the images
     echo "Generating manifests for image $IMAGE"
-    manifest-tool push from-args --platforms $ARCH_LIST --template "$IMAGE:$VERSION-ARCH" --target "$IMAGE:latest"
-    manifest-tool push from-args --platforms $ARCH_LIST --template "$IMAGE:$VERSION-ARCH" --target "$IMAGE:$VERSION"
+    manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:latest"
+    manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:$VERSION"
 
     echo ""
 done
