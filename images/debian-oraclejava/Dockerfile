@@ -1,11 +1,11 @@
 FROM debian:stretch
 
-MAINTAINER David Castellanos <davidcaste@gmail.com>
+MAINTAINER Carlos de Paula <carlosedp@gmail.com>
 
 ENV JAVA_VERSION_MAJOR=8 \
-    JAVA_VERSION_MINOR=162 \
-    JAVA_VERSION_BUILD=12 \
-    JAVA_DL_PATH=0da788060d494f5095bf8624735fa2f1 \
+    JAVA_VERSION_MINOR=172 \
+    JAVA_VERSION_BUILD=11 \
+    JAVA_DL_PATH=a58eab1ec242421181065cdc37240b08 \
     JAVA_VERSION_ARCH=arm64-vfp-hflt \
     JAVA_PACKAGE=jdk \
     JAVA_HOME=/opt/java \

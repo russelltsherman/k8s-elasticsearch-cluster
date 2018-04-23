@@ -35,7 +35,7 @@ spec:
           privileged: true
       containers:
       - name: es-client
-        image: carlosedp/docker-elasticsearch-kubernetes:6.2.2-arm64
+        image: carlosedp/docker-elasticsearch-kubernetes:6.2.3
         env:
         - name: NAMESPACE
           valueFrom:
@@ -71,17 +71,17 @@ spec:
           name: http
         - containerPort: 9300
           name: transport
-        #livenessProbe:
-        #  tcpSocket:
-        #    port: transport
-        #  initialDelaySeconds: 360
-        #  periodSeconds: 60
+        livenessProbe:
+         tcpSocket:
+           port: transport
+         initialDelaySeconds: 180
+         periodSeconds: 60
         #readinessProbe:
-        #  httpGet:
-        #    path: /_cluster/health
-        #    port: http
-        #  initialDelaySeconds: 360
-        #  timeoutSeconds: 60
+        # httpGet:
+        #   path: /_cluster/health
+        #   port: http
+        # initialDelaySeconds: 180
+        # timeoutSeconds: 60
         volumeMounts:
         - name: storage
           mountPath: /data

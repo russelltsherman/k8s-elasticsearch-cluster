@@ -1,7 +1,7 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: fluentd-es-config-v0.1.4
+  name: fluentd-es-config
   namespace: logging
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
@@ -402,6 +402,21 @@ data:
     # Enriches records with Kubernetes metadata
     <filter kubernetes.**>
       @type kubernetes_metadata
+    </filter>
+
+    # Parse Traefik logs (Version 1.0.0 onward)
+    # Add before "<match **>" line
+    <filter kubernetes.var.log.containers.traefik-ingress-**.log>
+      @type parser
+      key_name log
+      reserve_data yes
+      <parse>
+        @type regexp
+        expression /^(?<ip>[^-]*) - - \[(?<datetime>[^\]]*)\] "(?<method>[^ ]*) (?<path>[^ ]*) (?<http_version>[^"]*)" (?<status_code>[^ ]*) (?<body_bytes>[^ ]*) "(?<referer>[^"]*)" "(?<user_agent>[^"]*)" (?<seq>[^ ]*) "(?<domain>[^ ]*)" "(?<dest_url>[^ ]*)" (?<response_time>[^ ms]*)/
+        time_key datetime
+        time_format %d/%b/%Y:%H:%M:%S %z
+        types status_code:integer,body_bytes:integer,seq:integer,response_time:integer
+      </parse>
     </filter>
 
     <match **>

@@ -2,8 +2,8 @@
 
 set -e
 
-KIBANA_CONF_FILE="/opt/kibana-${KIBANA_VERSION}/config/kibana.yml"
-BASE=/opt/kibana-${KIBANA_VERSION}
+KIBANA_CONF_FILE="/opt/kibana/config/kibana.yml"
+BASE=/opt/kibana
 KIBANA_ES_URL=${KIBANA_ES_URL:-http://elasticsearch:9200}
 KIBANA_HOST=${KIBANA_HOST:-0.0.0.0}
 
@@ -33,4 +33,4 @@ fi
 unset HOST
 unset PORT
 
-exec /opt/kibana-${KIBANA_VERSION}/bin/kibana
+exec /opt/kibana/bin/kibana
