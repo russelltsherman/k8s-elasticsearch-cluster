@@ -71,16 +71,16 @@ spec:
         ports:
         - containerPort: 9300
           name: transport
-        livenessProbe:
-          tcpSocket:
-            port: transport
-          initialDelaySeconds: 180
-          periodSeconds: 10
-        readinessProbe:
-          tcpSocket:
-            port: transport
-          initialDelaySeconds: 30
-          periodSeconds: 20
+        #livenessProbe:
+        #  tcpSocket:
+        #    port: transport
+        #  initialDelaySeconds: 180
+        #  periodSeconds: 10
+        #readinessProbe:
+        #  tcpSocket:
+        #    port: transport
+        #  initialDelaySeconds: 30
+        #  periodSeconds: 20
         volumeMounts:
         - name: storage
           mountPath: /data
