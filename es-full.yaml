@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: es-data
+  name: es-full
   namespace: logging
   labels:
     component: elasticsearch
-    role: data
+    role: full
 spec:
   serviceName: elasticsearch-logging
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       component: elasticsearch
-      role: data
+      role: full
   template:
     metadata:
       labels:
         component: elasticsearch
-        role: data
+        role: full
     spec:
       initContainers:
       - name: init-sysctl
@@ -29,7 +29,7 @@ spec:
         securityContext:
           privileged: true
       containers:
-      - name: es-data
+      - name: es-full
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.3
         resources:
           limits:
@@ -39,6 +39,8 @@ spec:
         ports:
         - containerPort: 9300
           name: transport
+        - containerPort: 9200
+          name: http
         env:
         - name: NAMESPACE
           valueFrom:
@@ -50,14 +52,10 @@ spec:
               fieldPath: metadata.name
         - name: CLUSTER_NAME
           value: myesdb
-        - name: NODE_MASTER
-          value: "false"
-        - name: NODE_INGEST
-          value: "false"
-        - name: HTTP_ENABLE
-          value: "false"
         - name: ES_JAVA_OPTS
           value: -Xms1g -Xmx1g
+        - name: NETWORK_HOST
+          value: _site_,_lo_
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
@@ -78,7 +76,7 @@ spec:
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
-        - name: storage-data
+        - name: storage-full
           mountPath: /data
       affinity:
         podAntiAffinity:
@@ -90,7 +88,7 @@ spec:
                 - key: role
                   operator: In
                   values:
-                  - data
+                  - full
               topologyKey: kubernetes.io/hostname
       volumes:
       - name : config
@@ -98,7 +96,7 @@ spec:
           name: es-configmap
   volumeClaimTemplates:
   - metadata:
-      name: storage-data
+      name: storage-full
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:

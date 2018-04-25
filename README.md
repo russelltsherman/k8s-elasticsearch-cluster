@@ -63,13 +63,23 @@ The project uses images built for the ARM64 platform stored in my [Dockerhub acc
 
 Use the `deploy` script or follow it manually (these commands deploy the full stack).
 
+You have two options, one deployng nodes with separate roles (master, client and data) or having all nodes with all roles.
+This can be uncommented on the `deploy` script or using the instruction below.
+
+Create the namespace and cofiguration:
+
 ```
 kubectl create namespace logging
 alias kctl='kubectl --namespace logging'
 
+kctl apply -f es-configmap.yaml
+```
+
+To have separate roles on each node, use this:
+
+```
 kctl apply -f es-discovery-svc.yaml
 kctl apply -f es-svc.yaml
-kctl apply -f es-configmap.yaml
 
 # Deploy Elasticsearch master node and wait until it's up
 kctl apply -f es-master.yaml
@@ -79,7 +89,18 @@ kctl apply -f es-client.yaml
 
 # Deploy Elasticsearch data node and wait until it's up
 kctl apply -f es-data-statefulset.yaml
+```
 
+Or to have a three-node cluster with all roles, use this:
+
+```
+kctl apply -f es-full-svc.yaml
+kctl apply -f es-full.yaml
+```
+
+This is common to any option:
+
+```
 # Deploy Curator
 kctl apply -f es-curator-config.yaml
 kctl apply -f es-curator_v1beta1.yaml
