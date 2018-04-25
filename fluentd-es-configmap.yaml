@@ -421,9 +421,9 @@ data:
         </pattern>
         <pattern>
           format regexp
-          expression /^time="(?<time>[^\]]*)" level=(?<loglevel>[^\]]*) msg="(?<message>[^\]]*)"$/ 
-          time_key time
-          time_format %Y-%m-%dT%H:%M:%SZ
+          expression /^time="(?<datetime>[^\]]*)" level=(?<loglevel>[^\]]*) msg="(?<message>[^\]]*)"/
+          time_key datetime
+          time_format %Y-%m-%dT%H:%M:%S%z
         </pattern>
       </parse>
     </filter>
