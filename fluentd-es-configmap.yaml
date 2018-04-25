@@ -411,14 +411,22 @@ data:
       key_name log
       reserve_data yes
       <parse>
-        @type regexp
-        expression /^(?<ip>[^-]*) - - \[(?<datetime>[^\]]*)\] "(?<method>[^ ]*) (?<path>[^ ]*) (?<http_version>[^"]*)" (?<status_code>[^ ]*) (?<body_bytes>[^ ]*) "(?<referer>[^"]*)" "(?<user_agent>[^"]*)" (?<seq>[^ ]*) "(?<domain>[^ ]*)" "(?<dest_url>[^ ]*)" (?<response_time>[^ ms]*)/
-        time_key datetime
-        time_format %d/%b/%Y:%H:%M:%S %z
-        types status_code:integer,body_bytes:integer,seq:integer,response_time:integer
+        @type multi_format
+        <pattern>
+          format regexp
+          expression /^(?<ip>[^-]*) - - \[(?<datetime>[^\]]*)\] "(?<method>[^ ]*) (?<path>[^ ]*) (?<http_version>[^"]*)" (?<status_code>[^ ]*) (?<body_bytes>[^ ]*) "(?<referer>[^"]*)" "(?<user_agent>[^"]*)" (?<seq>[^ ]*) "(?<domain>[^ ]*)" "(?<dest_url>[^ ]*)" (?<response_time>[^ ms]*)/
+          time_key datetime
+          time_format %d/%b/%Y:%H:%M:%S %z
+          types status_code:integer,body_bytes:integer,seq:integer,response_time:integer
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^time="(?<time>[^\]]*)" level=(?<loglevel>[^\]]*) msg="(?<message>[^\]]*)"$/ 
+          time_key time
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
       </parse>
     </filter>
-
     <match **>
       @id elasticsearch
       @type elasticsearch
