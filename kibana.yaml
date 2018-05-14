@@ -29,26 +29,26 @@ spec:
           value: myesdb
         - name: SERVER_BASEPATH
           value: kibana.internal.carlosedp.com
-        #- name: "ES_PLUGINS_INSTALL"
-        #  value: "x-pack"
         ports:
         - containerPort: 5601
           name: http
           protocol: TCP
         volumeMounts:
         - name: config
-          mountPath: /opt/kibana/config/kibana.yml
-          # subPath: kibana.yml
+          mountPath: /opt/kibana/config
         - name: logtrail-config
-          mountPath: /usr/share/kibana/plugins/logtrail/logtrail.json
-          # subPath: logtrail.json
+          mountPath: /usr/share/kibana/plugins/logtrail
       volumes:
       - name : config
         configMap:
           name: kibana-config
-          key: kibana.yml
+          items:
+          - key: kibana.yml
+            path: kibana.yml
       - name : logtrail-config
         configMap:
           name: kibana-config
-          key: logtrail.json
+          items:          
+          - key: logtrail.json
+            path: logtrail.json
 
