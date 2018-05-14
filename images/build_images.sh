@@ -34,13 +34,13 @@ VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSIO
 
 num_img=$((${#IMAGES[*]}-1))
 
-for I in $(seq 0 $num_img); do
+function build_image {
     ARCH_LIST=''
     for ARCH in $ARCHITECTURES; do
         ARCH_LIST="linux/$ARCH $ARCH_LIST"
         IMAGE=${IMAGES[$I]}
         VERSION=${VERSIONS[$I]}
-        
+
         echo "Building image $IMAGE version $VERSION"
         docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH ./$IMAGE
         echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
@@ -53,4 +53,18 @@ for I in $(seq 0 $num_img); do
     manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:$VERSION"
 
     echo ""
-done
+}
+
+if [[ $# -eq 0 ]]; then
+    echo "Choose a image to build or 'all' to build all images"
+    echo ""
+    echo "Image list: " $IMAGES
+fi
+
+if [[ "$1" == "all" ]]; then
+    for I in $(seq 0 $num_img); do
+        build_image $I
+    done
+else
+    build_image $1
+fi
