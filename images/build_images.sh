@@ -57,8 +57,8 @@ function build_image {
 
 if [[ $# -eq 0 ]]; then
     echo "Choose a image to build or 'all' to build all images"
-    echo ""
-    echo "Image list: " $IMAGES
+    echo "Image list: " ${IMAGES[*]}
+    exit 0
 fi
 
 if [[ "$1" == "all" ]]; then
