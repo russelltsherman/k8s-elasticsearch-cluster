@@ -53,9 +53,11 @@ spec:
         - name: CLUSTER_NAME
           value: myesdb
         - name: ES_JAVA_OPTS
-          value: -Xms1g -Xmx1g
+          value: -Xms768m -Xmx768m
         - name: NETWORK_HOST
           value: _site_,_lo_
+        - name: NUMBER_OF_MASTERS
+          value: "2"
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
