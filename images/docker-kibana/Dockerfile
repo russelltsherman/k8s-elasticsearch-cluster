@@ -13,8 +13,12 @@ RUN apk --update add curl && \
     apk del curl && \
     rm -rf /var/cache/apk/*
 
+RUN /opt/kibana/bin/kibana-plugin install https://github.com/sivasamyk/logtrail/releases/download/v0.1.27/logtrail-6.2.3-0.1.27.zip
+
 ADD ./run.sh /run.sh
 
 EXPOSE 5601
 
 ENTRYPOINT /run.sh
+
+

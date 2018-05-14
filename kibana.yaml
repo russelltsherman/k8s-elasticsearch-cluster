@@ -38,9 +38,17 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /opt/kibana/config/kibana.yml
-          subPath: kibana.yml
+          # subPath: kibana.yml
+        - name: logtrail-config
+          mountPath: /usr/share/kibana/plugins/logtrail/logtrail.json
+          # subPath: logtrail.json
       volumes:
       - name : config
         configMap:
           name: kibana-config
+          key: kibana.yml
+      - name : logtrail-config
+        configMap:
+          name: kibana-config
+          key: logtrail.json
 
