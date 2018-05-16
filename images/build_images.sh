@@ -20,7 +20,7 @@
 JAVA_VERSION=8-172
 ES_VERSION=6.2.3
 CURATOR_VERSION=5.5.1
-FLUENTD_VERSION=1.1.3
+FLUENTD_VERSION=1.2.0
 CEREBRO_VERSION=0.7.3
 
 REGISTRY=carlosedp
@@ -35,6 +35,7 @@ VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSIO
 num_img=$((${#IMAGES[*]}-1))
 
 function build_image {
+    I=$1
     ARCH_LIST=''
     for ARCH in $ARCHITECTURES; do
         ARCH_LIST="linux/$ARCH $ARCH_LIST"
@@ -66,5 +67,6 @@ if [[ "$1" == "all" ]]; then
         build_image $I
     done
 else
-    build_image $1
+    INDEX=`echo ${IMAGES[@]/$1//} | cut -d/ -f1 | wc -w | tr -d ' '`
+    build_image $INDEX
 fi
