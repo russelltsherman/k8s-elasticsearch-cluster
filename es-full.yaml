@@ -33,9 +33,10 @@ spec:
         image: carlosedp/docker-elasticsearch-kubernetes:6.2.3
         resources:
           limits:
-            cpu: 2
+            cpu: 1
           requests:
             cpu: 1
+            memory: "768Mi"
         ports:
         - containerPort: 9300
           name: transport
@@ -53,7 +54,7 @@ spec:
         - name: CLUSTER_NAME
           value: myesdb
         - name: ES_JAVA_OPTS
-          value: -Xms768m -Xmx768m
+          value: -Xms512m -Xmx512m
         - name: NETWORK_HOST
           value: _site_,_lo_
         - name: NUMBER_OF_MASTERS
@@ -69,11 +70,11 @@ spec:
             port: transport
           initialDelaySeconds: 180
           periodSeconds: 10
-        #readinessProbe:
-        #  tcpSocket:
-        #    port: transport
-        #  initialDelaySeconds: 30
-        #  periodSeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 120
+          periodSeconds: 10
         volumeMounts:
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
