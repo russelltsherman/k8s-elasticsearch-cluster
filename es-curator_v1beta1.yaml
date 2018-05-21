@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: curator
 spec:
-  schedule: 1 0 * * *
+  schedule: 0 8 * * *
   jobTemplate:
     spec:
       template:
