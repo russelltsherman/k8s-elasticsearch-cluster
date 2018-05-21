@@ -414,7 +414,7 @@ data:
         @type multi_format
         <pattern>
           format regexp
-          expression /^(?<ip>[^-]*) - - \[(?<datetime>[^\]]*)\] "(?<method>[^ ]*) (?<path>[^ ]*) (?<http_version>[^"]*)" (?<status_code>[^ ]*) (?<body_bytes>[^ ]*) "(?<referer>[^"]*)" "(?<user_agent>[^"]*)" (?<seq>[^ ]*) "(?<domain>[^ ]*)" "(?<dest_url>[^ ]*)" (?<response_time>[^ ms]*)/
+          expression /^(?<ip>[^-]*) - - \[(?<datetime>[^\]]*)\] "(?<method>[^ ]*) (?<path>[^ ]*) (?<http_version>[^"]*)" (?<status_code>[^ ]*) (?<body_bytes>[^ ]*) "(?<referer>[^"]*)" "(?<user_agent>[^"]*)" (?<seq>[^ ]*) "(?<domain>.*)" "(?<dest_url>[^ ]*)" (?<response_time>[^ ms]*)/
           time_key datetime
           time_format %d/%b/%Y:%H:%M:%S %z
           types status_code:integer,body_bytes:integer,seq:integer,response_time:integer
