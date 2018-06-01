@@ -25,19 +25,6 @@ subjects:
   name: prometheus-k8s
   namespace: monitoring
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: prometheus-k8s
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: prometheus-k8s
-subjects:
-- kind: ServiceAccount
-  name: prometheus-k8s
-  namespace: logging
----
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
