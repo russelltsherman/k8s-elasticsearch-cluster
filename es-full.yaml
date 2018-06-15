@@ -71,10 +71,11 @@ spec:
           initialDelaySeconds: 180
           periodSeconds: 10
         readinessProbe:
-          tcpSocket:
+          httpGet:
+            path: /_cluster/health
             port: http
-          initialDelaySeconds: 120
-          periodSeconds: 10
+          initialDelaySeconds: 180
+          timeoutSeconds: 60
         volumeMounts:
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml

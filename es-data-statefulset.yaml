@@ -39,6 +39,8 @@ spec:
         ports:
         - containerPort: 9300
           name: transport
+        - containerPort: 9200
+          name: http
         env:
         - name: NAMESPACE
           valueFrom:
@@ -55,7 +57,7 @@ spec:
         - name: NODE_INGEST
           value: "false"
         - name: HTTP_ENABLE
-          value: "false"
+          value: "true"
         - name: ES_JAVA_OPTS
           value: -Xms1g -Xmx1g
         - name: PROCESSORS
@@ -69,11 +71,12 @@ spec:
             port: transport
           initialDelaySeconds: 180
           periodSeconds: 10
-        #readinessProbe:
-        #  tcpSocket:
-        #    port: transport
-        #  initialDelaySeconds: 30
-        #  periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: http
+          initialDelaySeconds: 180
+          timeoutSeconds: 60
         volumeMounts:
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
@@ -87,6 +90,10 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                  - elasticsearch
                 - key: role
                   operator: In
                   values:
