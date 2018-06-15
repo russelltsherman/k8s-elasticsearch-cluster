@@ -44,7 +44,7 @@ function build_image {
         ARCH_LIST="linux/$ARCH $ARCH_LIST"
         IMAGE=${IMAGES[$I]}
         VERSION=${VERSIONS[$I]}
-        if [[ "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
+        if [[ ! "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
           echo "Image $REGISTRY/$IMAGE:$VERSION-$ARCH already exists, skipping."
           return
         fi
