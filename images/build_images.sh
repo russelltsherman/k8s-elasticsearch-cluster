@@ -44,8 +44,11 @@ function build_image {
         ARCH_LIST="linux/$ARCH $ARCH_LIST"
         IMAGE=${IMAGES[$I]}
         VERSION=${VERSIONS[$I]}
-
-        echo "Building image $IMAGE version $VERSION"
+        if [[ "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
+          echo "Image $REGISTRY/$IMAGE:$VERSION-$ARCH already exists, skipping."
+          return
+        fi
+        echo "Building image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH --build-arg VERSION=$VERSION ./$IMAGE
         echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
