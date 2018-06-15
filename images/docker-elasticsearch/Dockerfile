@@ -12,7 +12,7 @@ ENV GPG_KEY "46095ACC8548582C1A2699A9D27D666CD88E42B4"
 
 # Install Elasticsearch.
 RUN apt-get update -q \
-  &&  apt-get install -q -y --no-install-recommends ca-certificates curl unzip gosu util-linux gnupg openssl uuid-runtime \
+  &&  apt-get install -q -y --no-install-recommends ca-certificates curl unzip gosu util-linux gnupg openssl uuid-runtime dirmngr \
   && cd /tmp \
   && echo "===> Install Elasticsearch..." \
   && curl -o elasticsearch.tar.gz -Lskj "$ES_TARBAL"; \
@@ -26,7 +26,7 @@ RUN apt-get update -q \
   tar -xf elasticsearch.tar.gz \
   && ls -lah \
   && mv elasticsearch-$ES_VERSION /elasticsearch \
-  && adduser --no-create-home --disabled-password --shell /sbin/nologin elasticsearch \
+  && adduser --no-create-home --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password --shell /sbin/nologin elasticsearch \
   && echo "===> Creating Elasticsearch Paths..." \
   && for path in \
   	/elasticsearch/config \
