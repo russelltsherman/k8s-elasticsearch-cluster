@@ -73,7 +73,7 @@ spec:
       serviceAccountName: fluentd-es
       containers:
       - name: fluentd-es
-        image: carlosedp/fluentd-elasticsearch:1.2.0
+        image: carlosedp/fluentd-elasticsearch:1.2.2
         env:
         - name: FLUENTD_ARGS
           value: --no-supervisor -q

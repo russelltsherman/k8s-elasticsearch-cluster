@@ -2,7 +2,9 @@ FROM carlosedp/debian-oraclejava:8-172-arm64
 
 ENV JAVA_HOME=/opt/java
 
-ENV CEREBRO_VERSION 0.7.3
+ARG VERSION
+ENV CEREBRO_VERSION=$VERSION
+
 RUN cd /opt/ \
     && apt-get update -q \
     && apt-get install -q -y --no-install-recommends ca-certificates curl \

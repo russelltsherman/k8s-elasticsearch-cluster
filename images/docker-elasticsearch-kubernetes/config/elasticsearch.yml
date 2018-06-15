@@ -32,3 +32,4 @@ discovery:
     minimum_master_nodes: ${NUMBER_OF_MASTERS}
 
 xpack.license.self_generated.type: basic
+xpack.ml.enabled: false

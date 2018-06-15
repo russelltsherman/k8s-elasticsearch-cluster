@@ -1,6 +1,8 @@
 FROM alpine:3.6
 
-ENV KIBANA_VERSION 6.2.3
+ARG VERSION
+ENV KIBANA_VERSION=$VERSION
+
 ENV LOGTRAIL_VERSION 0.1.27
 
 RUN apk --update add curl && \
@@ -14,7 +16,8 @@ RUN apk --update add curl && \
     apk del curl && \
     rm -rf /var/cache/apk/*
 
-RUN /opt/kibana/bin/kibana-plugin install https://github.com/sivasamyk/logtrail/releases/download/v${LOGTRAIL_VERSION}/logtrail-${KIBANA_VERSION}-${LOGTRAIL_VERSION}.zip
+# Logtrail not available for 6.3
+#RUN /opt/kibana/bin/kibana-plugin install https://github.com/sivasamyk/logtrail/releases/download/v${LOGTRAIL_VERSION}/logtrail-${KIBANA_VERSION}-${LOGTRAIL_VERSION}.zip
 
 ADD ./run.sh /run.sh
 

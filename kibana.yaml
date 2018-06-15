@@ -19,7 +19,7 @@ spec:
       serviceAccount: elk
       containers:
       - name: kibana
-        image: carlosedp/docker-kibana:6.2.3
+        image: carlosedp/docker-kibana:6.3.0
         env:
         - name: KIBANA_ES_URL
           value: "http://elasticsearch:9200"
@@ -50,7 +50,7 @@ spec:
       - name : logtrail-config
         configMap:
           name: kibana-config
-          items:          
+          items:
           - key: logtrail.json
             path: logtrail.json
 

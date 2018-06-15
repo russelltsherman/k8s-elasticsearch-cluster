@@ -2,26 +2,29 @@
 #
 # To update image versions and the Kubernetes manifests edit:
 # - ./build_images.sh - #Versions section
-# - ./debian-oraclejava/Dockerfile - Versions and download path
-# - ./docker-elasticsearch/Dockerfile - FROM and ES_VERSION lines
-# - ./docker-elasticsearch-kubernetes/Dockerfile - FROM line
-# - ./docker-elasticsearch-curator/Dockerfile - "pip install" line
-# - ./docker-kibana/Dockerfile - KIBANA_VERSION line
+# - ./debian-oraclejava/Dockerfile - Versions and download path for new Java
+# - ./docker-elasticsearch/Dockerfile - FROM in case of Java update
+# - ./docker-kibana/Dockerfile - LOGTRAIL_VERSION line
 # - ./fluentd-elasticsearch/Gemfile - Gem versions
-# - ./elasticsearch-cerebro/Dockerfile - ENV CEREBRO_VERSION line
-# - Manifest es-curator_v1beta1.yaml - "image" line
-# - Manifest es-data-statefulset.yaml - "image" line
-# - Manifest es-master.yaml - "image" line
-# - Manifest fluentd-es-ds.yaml - "image" line
-# - Manifest kibana.yaml - "image" line
-# - Manifest cerebro.yaml - "image" line
+# - ./elasticsearch-cerebro/Dockerfile - FROM in case of Java update
+# Manifests:
+# - es-client.yaml - "image" line
+# - es-master.yaml - "image" line
+# - es-data-statefulset.yaml - "image" line
+# - es-full.yaml - "image" line
+# - es-curator_v1beta1.yaml - "image" line
+# - fluentd-es-ds.yaml - "image" line
+# - kibana.yaml - "image" line
+# - cerebro.yaml - "image" line
+# - prometheus_exporter/elasticsearch-exporter-deployment.yaml - "image" line
 
 # Versions
 JAVA_VERSION=8-172
-ES_VERSION=6.2.3
-CURATOR_VERSION=5.5.1
-FLUENTD_VERSION=1.2.0
+ES_VERSION=6.3.0
+CURATOR_VERSION=5.5.4
+FLUENTD_VERSION=1.2.2
 CEREBRO_VERSION=0.7.3
+EXPORTER_VERSION=1.0.2
 
 REGISTRY=carlosedp
 
@@ -29,8 +32,8 @@ REGISTRY=carlosedp
 ARCHITECTURES=(arm64)
 
 # Images and respective versions
-IMAGES=(debian-oraclejava docker-elasticsearch docker-elasticsearch-kubernetes docker-elasticsearch-curator fluentd-elasticsearch docker-kibana elasticsearch-cerebro)
-VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSION $ES_VERSION $CEREBRO_VERSION)
+IMAGES=(debian-oraclejava docker-elasticsearch docker-elasticsearch-kubernetes docker-elasticsearch-curator fluentd-elasticsearch docker-kibana elasticsearch-cerebro elasticsearch_exporter)
+VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSION $ES_VERSION $CEREBRO_VERSION $EXPORTER_VERSION)
 
 num_img=$((${#IMAGES[*]}-1))
 
@@ -43,7 +46,7 @@ function build_image {
         VERSION=${VERSIONS[$I]}
 
         echo "Building image $IMAGE version $VERSION"
-        docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH ./$IMAGE
+        docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH --build-arg VERSION=$VERSION ./$IMAGE
         echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
     done
