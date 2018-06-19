@@ -1,8 +1,9 @@
-FROM busybox:latest
+FROM debian:stretch-slim
 
 ARG VERSION
 ENV VERSION=$VERSION
 
+RUN mkdir -p /opt
 RUN cd /opt/ \
     && apt-get update -q \
     && apt-get install -q -y --no-install-recommends ca-certificates curl \

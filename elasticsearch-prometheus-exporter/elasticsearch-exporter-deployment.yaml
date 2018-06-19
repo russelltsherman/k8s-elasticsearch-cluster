@@ -26,7 +26,7 @@ spec:
         - -es.uri=http://elasticsearch.logging.svc:9200
         - -es.timeout=60s
         - -es.all=true
-        image: carlosedp/elasticsearch_exporter:v1.0.2-arm64
+        image: carlosedp/elasticsearch-exporter:1.0.2
         securityContext:
           capabilities:
             drop:
