@@ -37,6 +37,12 @@ VERSIONS=($JAVA_VERSION $ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSIO
 
 num_img=$((${#IMAGES[*]}-1))
 
+CURRENT_ARCH=`dpkg-architecture -q DEB_BUILD_ARCH`
+if  [[ -x $(command manifest-tool) ]]; then
+    curl -o ./manifest-tool https://github.com/estesp/manifest-tool/releases/download/v0.9.0/manifest-tool-linux-$(CURRENT_ARCH)
+    chmod +x manifest-tool
+fi
+
 function build_image {
     I=$1
     ARCH_LIST=''
@@ -56,7 +62,7 @@ function build_image {
 
     # Generate the manifests for the images
     echo "Generating manifests for image $IMAGE"
-    manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:latest"
+    #manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:latest"
     manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:$VERSION"
 
     echo ""
