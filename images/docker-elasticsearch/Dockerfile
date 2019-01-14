@@ -1,4 +1,4 @@
-FROM carlosedp/debian-oraclejava:8-172-arm64
+FROM openjdk:8u181-jdk-stretch
 
 ENV JAVA_HOME=/opt/java
 

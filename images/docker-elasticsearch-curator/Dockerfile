@@ -1,4 +1,4 @@
-FROM python:3-alpine3.7
+FROM python:3-stretch
 
 ARG VERSION
 ENV CURATOR_VERSION=$VERSION
