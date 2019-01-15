@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
           - name: curator
-            image: carlosedp/docker-elasticsearch-curator:5.5.4
+            image: carlosedp/docker-elasticsearch-curator:5.6.0
             args:
             - --config
             - /etc/config/config.yml

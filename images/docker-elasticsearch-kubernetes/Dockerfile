@@ -1,5 +1,5 @@
 ARG VERSION
-FROM carlosedp/docker-elasticsearch:$VERSION-arm64
+FROM carlosedp/docker-elasticsearch:$VERSION-$ARCH
 
 # Override config, otherwise plug-in install will fail
 ADD config /elasticsearch/config
