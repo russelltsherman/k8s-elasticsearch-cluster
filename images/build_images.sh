@@ -33,55 +33,62 @@ ARCHITECTURES=(amd64 arm64)
 
 # Images and respective versions
 IMAGES=(docker-elasticsearch docker-elasticsearch-kubernetes docker-elasticsearch-curator fluentd-elasticsearch docker-kibana elasticsearch-cerebro elasticsearch-exporter)
+
 VERSIONS=($ES_VERSION $ES_VERSION $CURATOR_VERSION $FLUENTD_VERSION $ES_VERSION $CEREBRO_VERSION $EXPORTER_VERSION)
 
 num_img=$((${#IMAGES[*]}-1))
 
 CURRENT_ARCH=$(dpkg --print-architecture)
 CPU_ARCH=$(uname -m)
-if  [[ -x $(command -v manifest-tool) ]]; then
-    echo "Downloading manifest-tool"
-    curl -o ./manifest-tool -Lskj https://github.com/estesp/manifest-tool/releases/download/v0.9.0/manifest-tool-linux-$CURRENT_ARCH
-    chmod +x manifest-tool
-fi
 
 function build_image {
     I=$1
     ARCH=$CURRENT_ARCH
     IMAGE=${IMAGES[$I]}
     VERSION=${VERSIONS[$I]}
+    echo "====================================================================="
+    echo "Building image $REGISTRY/$IMAGE:$VERSION-$ARCH"
+    echo "====================================================================="
     if [[ ! "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
         echo "Image $REGISTRY/$IMAGE:$VERSION-$ARCH already exists, skipping."
-        #return
+        return
     fi
-    echo "Building image $REGISTRY/$IMAGE:$VERSION-$ARCH"
     docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH --build-arg VERSION=$VERSION --build-arg ARCH=$ARCH --build-arg CPU_ARCH=$CPU_ARCH ./$IMAGE
     echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
     docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
+    echo ""
 }
 
 function push_manifests {
+    if ! [ -x $(command -v ./manifest-tool > /dev/null) ]; then
+      echo "Downloading manifest-tool"
+      curl -o ./manifest-tool -Lskj https://github.com/estesp/manifest-tool/releases/download/v0.9.0/manifest-tool-linux-$CURRENT_ARCH
+      chmod +x manifest-tool
+    fi
     IMAGE=${IMAGES[$I]}
     VERSION=${VERSIONS[$I]}
-    num_archs=$((${#ARCHITECTURES[*]}-1))
+    num_archs=$((${#ARCHITECTURES[*]}))
     I=$1
     ARCH_LIST=''
-    for ARCH in $ARCHITECTURES; do
-        ARCH_LIST="linux/$ARCH $ARCH_LIST"
+    echo "====================================================================="
+    echo "Pushing manifest for image $REGISTRY/$IMAGE:$VERSION-$ARCH"
+    echo "====================================================================="
+    for ARCH in "${ARCHITECTURES[@]}"; do
+        ARCH_LIST="$ARCH_LIST linux/$ARCH"
         echo "Looking for image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         if [[ "$(docker manifest inspect $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" ]]; then
             echo "Image found."
-            num_archs--
+            num_archs=$(expr $num_archs - 1)
         else
             echo "Image not found."
         fi
     done
-
-    if [[ num_archs == 0 ]]; then
+    echo ""
+    if [[ $num_archs == 0 ]]; then
         # Generate the manifests for the images
         echo "Generating manifests for image $IMAGE"
         #manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:latest"
-        ./manifest-tool push from-args --platforms $ARCH_LIST --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:$VERSION"
+        ./manifest-tool push from-args --platforms `echo $ARCH_LIST|tr ' ' ','` --template "$REGISTRY/$IMAGE:$VERSION-ARCH" --target "$REGISTRY/$IMAGE:$VERSION"
         echo ""
     else
         echo "Could not find images pushed for all listed architectures."
@@ -98,9 +105,11 @@ if [[ "$1" == "all" ]]; then
     # Build all images
     for I in $(seq 0 $num_img); do
         build_image $I
+        push_manifests $I
     done
 else
     # Build specific image
     INDEX=`echo ${IMAGES[@]/$1//} | cut -d/ -f1 | wc -w | tr -d ' '`
     build_image $INDEX
+    push_manifests $INDEX
 fi
