@@ -24,7 +24,8 @@ The images in this project were built for the ARM64 platform.
 
 ## Abstract
 
-Elasticsearch best-practices recommend to separate nodes in three roles:
+[Elasticsearch best-practices recommend to separate nodes in three roles](https://www.elastic.co/guide/en/elasticsearch/reference/6.5/modules-node.html):
+
 * `Master` nodes - intended for clustering management only, no data, no HTTP API
 * `Client` nodes - intended for client usage, no data, with HTTP API
 * `Data` nodes - intended for storing and indexing data, no HTTP API
@@ -269,6 +270,10 @@ spec:
         podAffinityTerm:
           labelSelector:
             matchExpressions:
+            - key: component
+              operator: In
+              values:
+              - elasticsearch
             - key: role
               operator: In
               values:
