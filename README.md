@@ -1,9 +1,9 @@
 # kubernetes-elasticsearch-cluster
-Elasticsearch cluster on top of Kubernetes made easy.
+Elasticsearch 6.5.4 cluster on top of Kubernetes made easy.
 
 These files are the project manifests and image generation files used on the article https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9.
 
-The images in this project were built for the ARM64 platform.
+The images in this project were built for the ARM64 and AMD64 platform. A hybrid cluster (Intel and ARM) can be created using these files.
 
 ### Table of Contents
 
@@ -30,35 +30,36 @@ The images in this project were built for the ARM64 platform.
 * `Client` nodes - intended for client usage, no data, with HTTP API
 * `Data` nodes - intended for storing and indexing data, no HTTP API
 
-Given this, I'm going to demonstrate how to provision a production grade scenario consisting of 1 master, 1 client and 2 data nodes.
+This is the recommended way to deploy ElasticSearch in case your nodes are not CPU/Memory limited. The manifests on `separate-roles` show how to provision a production grade scenario consisting of 1 master, 1 client and 2 data nodes. The set of manifests in the root deploys a three-node ES cluster where all nodes perform all roles.
 
-<a id="important-notes">
+<a id="important-notes"\>
 
 ## (Very) Important notes
 
 * Elasticsearch pods need for an init-container to run in privileged mode, so it can set some VM options. For that to happen, the `kubelet` should be running with args `--allow-privileged`, otherwise
 the init-container will fail to run.
 
-* By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository.
+* By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository. In the full-role nodes, all nodes start with 1GB heap.
 
 * In this project,the pods use the Default `StorageClass` for storing data in each data node container. It could be adapted to other storage targets according to one's needs.
 
-* The data pods are deployed as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
+* The all pods (master, data and ingest) are deployed as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
 
 * By default, `PROCESSORS` is set to `1` with a limit of `3` CPUs. This may not be enough for some deployments, especially at startup time. Adjust `resources.limits.cpu` and/or `livenessProbe` accordingly if required. Note that `resources.limits.cpu` must be an integer.
 
-<a id="pre-requisites">
+<a id="pre-requisites"\>
 
 ## Pre-requisites
 
-* Kubernetes cluster with **alpha features enabled** (tested with v1.9.3 on-premises cluster), thas's because curator is a CronJob object which comes from batch/v2alpha1.
+* Kubernetes cluster with (tested with v1.9.3 and 1.13.1 on-premises cluster).
 * `kubectl` configured to access the cluster master API Server
+* For curator jobs to be cleaned atomatically, the `- --feature-gates=TTLAfterFinished=true` feature gate should be enabled on the static manifests (`/etc/kubernetes/manifests`).
 
-<a id="build-images">
+<a id="build-images"\>
 
 ## Build images
 
-The project uses images built for the ARM64 platform stored in my [Dockerhub account](https://hub.docker.com/r/carlosedp/). The images can be built in the `images` dir with the provided script or manually. In case of building for other platforms (AMD64 for example), adjustments need to be done on the dependencies.
+The project uses images built for the ARM64 and AMD64 (x86) platform stored in my [Dockerhub account](https://hub.docker.com/r/carlosedp/). The images can be built in the `images` dir with the provided script or manually. As default, the images will be built by the script for the platform it's running on.
 
 ### Deploy
 
@@ -76,111 +77,125 @@ alias kctl='kubectl --namespace logging'
 kctl apply -f es-configmap.yaml
 ```
 
-To have separate roles on each node, use this:
-
-```
-kctl apply -f es-discovery-svc.yaml
-kctl apply -f es-svc.yaml
-
-# Deploy Elasticsearch master node and wait until it's up
-kctl apply -f es-master.yaml
-
-# Deploy Elasticsearch client node and wait until it's up
-kctl apply -f es-client.yaml
-
-# Deploy Elasticsearch data node and wait until it's up
-kctl apply -f es-data-statefulset.yaml
-```
-
 Or to have a three-node cluster with all roles, use this:
 
 ```
 kctl apply -f es-full-svc.yaml
-kctl apply -f es-full.yaml
+kctl apply -f es-full-statefulset.yaml
+```
+
+To have separate roles on each node, use this:
+
+```
+# Deploy Elasticsearch master node and wait until it's up
+kctl apply -f ./separate-roles/es-master-svc.yaml
+kctl apply -f ./separate-roles/es-master-statefulset.yaml
+until kctl rollout status statefulset es-master  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch client node and wait until it's up
+kctl apply -f ./separate-roles/es-ingest-svc.yaml
+kctl apply -f ./separate-roles/es-ingest-statefulset.yaml
+until kctl rollout status deployment es-client  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch data node and wait until it's up
+kctl apply -f ./separate-roles/es-data-svc.yaml
+kctl apply -f ./separate-roles/es-data-statefulset.yaml
+until kctl rollout status statefulset es-data  > /dev/null 2>&1; do sleep 1; printf "."; done
 ```
 
 This is common to any option:
 
 ```
 # Deploy Curator
-kctl apply -f es-curator-config.yaml
-kctl apply -f es-curator_v1beta1.yaml
+kctl apply -f es-curator-configmap.yaml
+kctl apply -f es-curator-cronjob.yaml
+
+# Deploy Cerebro
+kctl apply -f cerebro.yaml
+kctl apply -f cerebro-external-ingress.yaml
 
 # Deploy Kibana
 kctl apply -f kibana-configmap.yaml
-kctl apply -f kibana-external-ingress.yaml
-kctl apply -f kibana-service-account.yaml
 kctl apply -f kibana-svc.yaml
-kctl apply -f kibana.yaml
+kctl apply -f kibana-deployment.yaml
+kctl apply -f kibana-external-ingress.yaml
 
 # Deploy Fluentd
-kctl apply -f fluentd-es-configmap.yaml
-kctl apply -f fluentd-es-ds.yaml
+kctl apply -f fluentd-configmap.yaml
+kctl apply -f fluentd-daemonset.yaml
+```
+
+Let's check if everything is working properly:
+Check one of the Elasticsearch master nodes logs:
+
+```
+$ kubectl get svc,deployment,statefulsets,pods -l component=elasticsearch
+NAME                                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/elasticsearch                    NodePort    10.106.88.175   <none>        9200:30230/TCP   73m
+service/elasticsearch-data-discovery     ClusterIP   None            <none>        9300/TCP         6h8m
+service/elasticsearch-discovery          ClusterIP   None            <none>        9300/TCP         6h4m
+service/elasticsearch-ingest-discovery   ClusterIP   None            <none>        9300/TCP         6h11m
+
+NAME                         READY   AGE
+statefulset.apps/es-data     2/2     102m
+statefulset.apps/es-ingest   1/1     98m
+statefulset.apps/es-master   1/1     6h50m
+
+NAME              READY   STATUS    RESTARTS   AGE
+pod/es-data-0     1/1     Running   0          59m
+pod/es-data-1     1/1     Running   0          95m
+pod/es-ingest-0   1/1     Running   0          98m
+pod/es-master-0   1/1     Running   0          6h46m
 ```
 
 Check one of the Elasticsearch master nodes logs:
 ```
-$ kubectl get svc,deployment,statefulsets,pods -l component=elasticsearch
-NAME                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-svc/elasticsearch             ClusterIP   10.100.220.56   <none>        9200/TCP   2m
-svc/elasticsearch-discovery   ClusterIP   10.100.140.50   <none>        9300/TCP   2m
-
-NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-deploy/es-client   2         2         2            2           1m
-deploy/es-data     2         2         2            2           48s
-deploy/es-master   3         3         3            3           2m
-
-NAME                            READY     STATUS    RESTARTS   AGE
-po/es-client-76fb6ffdf4-nn5b2   1/1       Running   0          1m
-po/es-client-76fb6ffdf4-s29z5   1/1       Running   0          1m
-po/es-data-5958b79f75-5fjgz     1/1       Running   0          48s
-po/es-data-5958b79f75-rw9f4     1/1       Running   0          48s
-po/es-master-6f6449b7f-jwbcb    1/1       Running   0          2m
-po/es-master-6f6449b7f-lv2jm    1/1       Running   0          2m
-po/es-master-6f6449b7f-v9mqr    1/1       Running   0          2m
-```
-
-```
 $ kubectl logs po/es-master-6f6449b7f-jwbcb
-[2017-12-20T12:17:58,781][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] initializing ...
-[2017-12-20T12:17:59,199][INFO ][o.e.e.NodeEnvironment    ] [es-master-6f6449b7f-jwbcb] using [1] data paths, mounts [[/data (/dev/sda9)]], net usable_space [13.7gb], net total_space [15.5gb], types [ext4]
-[2017-12-20T12:17:59,200][INFO ][o.e.e.NodeEnvironment    ] [es-master-6f6449b7f-jwbcb] heap size [247.5mb], compressed ordinary object pointers [true]
-[2017-12-20T12:17:59,201][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] node name [es-master-6f6449b7f-jwbcb], node ID [cqcVQ7hjQZuGXqb_9kZaMA]
-[2017-12-20T12:17:59,202][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] version[6.1.2], pid[1], build[bd92e7f/2017-12-17T20:23:25.338Z], OS[Linux/4.14.4-coreos/amd64], JVM[Oracle Corporation/OpenJDK 64-Bit Server VM/1.8.0_151/25.151-b12]
-[2017-12-20T12:17:59,202][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] JVM arguments [-XX:+UseConcMarkSweepGC, -XX:CMSInitiatingOccupancyFraction=75, -XX:+UseCMSInitiatingOccupancyOnly, -XX:+DisableExplicitGC, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -Djdk.io.permissionsUseCanonicalPath=true, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Dlog4j.skipJansi=true, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx256m, -Des.path.home=/elasticsearch, -Des.path.conf=/elasticsearch/config]
-[2017-12-20T12:18:02,857][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [aggs-matrix-stats]
-[2017-12-20T12:18:02,857][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [analysis-common]
-[2017-12-20T12:18:02,858][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [ingest-common]
-[2017-12-20T12:18:02,858][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [lang-expression]
-[2017-12-20T12:18:02,858][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [lang-mustache]
-[2017-12-20T12:18:02,858][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [lang-painless]
-[2017-12-20T12:18:02,861][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [mapper-extras]
-[2017-12-20T12:18:02,861][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [parent-join]
-[2017-12-20T12:18:02,861][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [percolator]
-[2017-12-20T12:18:02,862][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [reindex]
-[2017-12-20T12:18:02,862][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [repository-url]
-[2017-12-20T12:18:02,862][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [transport-netty4]
-[2017-12-20T12:18:02,862][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] loaded module [tribe]
-[2017-12-20T12:18:02,862][INFO ][o.e.p.PluginsService     ] [es-master-6f6449b7f-jwbcb] no plugins loaded
-[2017-12-20T12:18:08,955][INFO ][o.e.d.DiscoveryModule    ] [es-master-6f6449b7f-jwbcb] using discovery type [zen]
-[2017-12-20T12:18:10,574][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] initialized
-[2017-12-20T12:18:10,574][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] starting ...
-[2017-12-20T12:18:11,218][INFO ][o.e.t.TransportService   ] [es-master-6f6449b7f-jwbcb] publish_address {10.244.89.3:9300}, bound_addresses {10.244.89.3:9300}
-[2017-12-20T12:18:11,288][INFO ][o.e.b.BootstrapChecks    ] [es-master-6f6449b7f-jwbcb] bound or publishing to a non-loopback or non-link-local address, enforcing bootstrap checks
-[2017-12-20T12:18:15,544][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-elected-as-master ([1] nodes joined)[{es-master-6f6449b7f-v9mqr}{nqzSW2qPQ1Gykk_V9aWtaQ}{M_0YBuxKSaGuaiYPKO6XDA}{10.244.82.2}{10.244.82.2:9300}], reason: new_master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300}, added {{es-master-6f6449b7f-v9mqr}{nqzSW2qPQ1Gykk_V9aWtaQ}{M_0YBuxKSaGuaiYPKO6XDA}{10.244.82.2}{10.244.82.2:9300},}
-[2017-12-20T12:18:15,619][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] new_master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300}, added {{es-master-6f6449b7f-v9mqr}{nqzSW2qPQ1Gykk_V9aWtaQ}{M_0YBuxKSaGuaiYPKO6XDA}{10.244.82.2}{10.244.82.2:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [1] source [zen-disco-elected-as-master ([1] nodes joined)[{es-master-6f6449b7f-v9mqr}{nqzSW2qPQ1Gykk_V9aWtaQ}{M_0YBuxKSaGuaiYPKO6XDA}{10.244.82.2}{10.244.82.2:9300}]]])
-[2017-12-20T12:18:15,638][INFO ][o.e.n.Node               ] [es-master-6f6449b7f-jwbcb] started
-[2017-12-20T12:18:15,746][INFO ][o.e.g.GatewayService     ] [es-master-6f6449b7f-jwbcb] recovered [0] indices into cluster_state
-[2017-12-20T12:18:19,067][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-node-join[{es-master-6f6449b7f-lv2jm}{8zIG7IwHRwO0aqR-oShogg}{znAbUe2aTPSZDhOzSogF_Q}{10.244.7.2}{10.244.7.2:9300}], reason: added {{es-master-6f6449b7f-lv2jm}{8zIG7IwHRwO0aqR-oShogg}{znAbUe2aTPSZDhOzSogF_Q}{10.244.7.2}{10.244.7.2:9300},}
-[2017-12-20T12:18:19,282][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] added {{es-master-6f6449b7f-lv2jm}{8zIG7IwHRwO0aqR-oShogg}{znAbUe2aTPSZDhOzSogF_Q}{10.244.7.2}{10.244.7.2:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [3] source [zen-disco-node-join[{es-master-6f6449b7f-lv2jm}{8zIG7IwHRwO0aqR-oShogg}{znAbUe2aTPSZDhOzSogF_Q}{10.244.7.2}{10.244.7.2:9300}]]])
-[2017-12-20T12:18:22,318][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-node-join[{es-client-76fb6ffdf4-nn5b2}{AWN-3PlZTr-W_8kF9cOiOg}{HngNj7o2TYWi53Nl5ZUtcg}{10.244.82.3}{10.244.82.3:9300}], reason: added {{es-client-76fb6ffdf4-nn5b2}{AWN-3PlZTr-W_8kF9cOiOg}{HngNj7o2TYWi53Nl5ZUtcg}{10.244.82.3}{10.244.82.3:9300},}
-[2017-12-20T12:18:22,417][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] added {{es-client-76fb6ffdf4-nn5b2}{AWN-3PlZTr-W_8kF9cOiOg}{HngNj7o2TYWi53Nl5ZUtcg}{10.244.82.3}{10.244.82.3:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [4] source [zen-disco-node-join[{es-client-76fb6ffdf4-nn5b2}{AWN-3PlZTr-W_8kF9cOiOg}{HngNj7o2TYWi53Nl5ZUtcg}{10.244.82.3}{10.244.82.3:9300}]]])
-[2017-12-20T12:18:23,471][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-node-join[{es-client-76fb6ffdf4-s29z5}{UsP1etv_TxCMJM0TIT4CfQ}{2LhBNb9MRcmP9x1qSZh3IA}{10.244.7.3}{10.244.7.3:9300}], reason: added {{es-client-76fb6ffdf4-s29z5}{UsP1etv_TxCMJM0TIT4CfQ}{2LhBNb9MRcmP9x1qSZh3IA}{10.244.7.3}{10.244.7.3:9300},}
-[2017-12-20T12:18:23,662][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] added {{es-client-76fb6ffdf4-s29z5}{UsP1etv_TxCMJM0TIT4CfQ}{2LhBNb9MRcmP9x1qSZh3IA}{10.244.7.3}{10.244.7.3:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [5] source [zen-disco-node-join[{es-client-76fb6ffdf4-s29z5}{UsP1etv_TxCMJM0TIT4CfQ}{2LhBNb9MRcmP9x1qSZh3IA}{10.244.7.3}{10.244.7.3:9300}]]])
-[2017-12-20T12:18:49,301][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-node-join[{es-data-5958b79f75-5fjgz}{hxJ7l5x1TwyZqYJGHgeleA}{87YTvzDtSPOlFb8CelAB-A}{10.244.89.4}{10.244.89.4:9300}], reason: added {{es-data-5958b79f75-5fjgz}{hxJ7l5x1TwyZqYJGHgeleA}{87YTvzDtSPOlFb8CelAB-A}{10.244.89.4}{10.244.89.4:9300},}
-[2017-12-20T12:18:49,591][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] added {{es-data-5958b79f75-5fjgz}{hxJ7l5x1TwyZqYJGHgeleA}{87YTvzDtSPOlFb8CelAB-A}{10.244.89.4}{10.244.89.4:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [6] source [zen-disco-node-join[{es-data-5958b79f75-5fjgz}{hxJ7l5x1TwyZqYJGHgeleA}{87YTvzDtSPOlFb8CelAB-A}{10.244.89.4}{10.244.89.4:9300}]]])
-[2017-12-20T12:18:49,598][INFO ][o.e.c.s.MasterService    ] [es-master-6f6449b7f-jwbcb] zen-disco-node-join[{es-data-5958b79f75-rw9f4}{dGK7494zQE-sKvEF-FP6wQ}{VnpmlD5YSjW8p74Z72vSCA}{10.244.7.4}{10.244.7.4:9300}], reason: added {{es-data-5958b79f75-rw9f4}{dGK7494zQE-sKvEF-FP6wQ}{VnpmlD5YSjW8p74Z72vSCA}{10.244.7.4}{10.244.7.4:9300},}
-[2017-12-20T12:18:49,892][INFO ][o.e.c.s.ClusterApplierService] [es-master-6f6449b7f-jwbcb] added {{es-data-5958b79f75-rw9f4}{dGK7494zQE-sKvEF-FP6wQ}{VnpmlD5YSjW8p74Z72vSCA}{10.244.7.4}{10.244.7.4:9300},}, reason: apply cluster state (from master [master {es-master-6f6449b7f-jwbcb}{cqcVQ7hjQZuGXqb_9kZaMA}{ry_a3m3bSaiatxWDcTsnuw}{10.244.89.3}{10.244.89.3:9300} committed version [7] source [zen-disco-node-join[{es-data-5958b79f75-rw9f4}{dGK7494zQE-sKvEF-FP6wQ}{VnpmlD5YSjW8p74Z72vSCA}{10.244.7.4}{10.244.7.4:9300}]]])
+chown: changing ownership of '/elasticsearch/config/elasticsearch.yml': Read-only file system
+[2019-01-16T14:06:37,974][WARN ][o.e.c.l.LogConfigurator  ] [es-master-0] Some logging configurations have %marker but don't have %node_name. We will automatically add %node_name to the pattern to ease the migration for users who customize log4j2.properties but will stop this behavior in 7.0. You should manually replace `%node_name` with `[%node_name]%marker ` in these locations:
+  /elasticsearch/config/log4j2.properties
+[2019-01-16T14:06:42,312][INFO ][o.e.e.NodeEnvironment    ] [es-master-0] using [1] data paths, mounts [[/data (192.168.1.62:/data/kubernetes-storage/logging-elasticsearch-master-es-master-0-pvc-3f9d2bc1-1997-11e9-b14b-00e04c3bb2dc)]], net usable_space [821.8gb], net total_space [879.2gb], types [nfs4]
+[2019-01-16T14:06:42,314][INFO ][o.e.e.NodeEnvironment    ] [es-master-0] heap size [494.9mb], compressed ordinary object pointers [true]
+[2019-01-16T14:06:42,348][INFO ][o.e.n.Node               ] [es-master-0] node name [es-master-0], node ID [FZPGD1bqRbW105MYCBtnYw]
+[2019-01-16T14:06:42,350][INFO ][o.e.n.Node               ] [es-master-0] version[6.5.4], pid[1], build[default/tar/d2ef93d/2018-12-17T21:17:40.758843Z], OS[Linux/4.4.138/aarch64], JVM[Oracle Corporation/OpenJDK 64-Bit Server VM/1.8.0_181/25.181-b13]
+[2019-01-16T14:06:42,351][INFO ][o.e.n.Node               ] [es-master-0] JVM arguments [-XX:+UseConcMarkSweepGC, -XX:CMSInitiatingOccupancyFraction=75, -XX:+UseCMSInitiatingOccupancyOnly, -XX:+DisableExplicitGC, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -Djdk.io.permissionsUseCanonicalPath=true, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Dlog4j.skipJansi=true, -XX:+HeapDumpOnOutOfMemoryError, -Xms512m, -Xmx512m, -Des.path.home=/elasticsearch, -Des.path.conf=/elasticsearch/config, -Des.distribution.flavor=default, -Des.distribution.type=tar]
+[2019-01-16T14:06:58,712][WARN ][o.e.d.c.s.Settings       ] [es-master-0] [http.enabled] setting was deprecated in Elasticsearch and will be removed in a future release! See the breaking changes documentation for the next major version.
+[2019-01-16T14:07:22,304][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [aggs-matrix-stats]
+[2019-01-16T14:07:22,305][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [analysis-common]
+[2019-01-16T14:07:22,305][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [ingest-common]
+[2019-01-16T14:07:22,305][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [lang-expression]
+[2019-01-16T14:07:22,306][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [lang-mustache]
+[2019-01-16T14:07:22,306][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [lang-painless]
+[2019-01-16T14:07:22,306][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [mapper-extras]
+[2019-01-16T14:07:22,306][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [parent-join]
+[2019-01-16T14:07:22,306][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [percolator]
+[2019-01-16T14:07:22,307][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [rank-eval]
+[2019-01-16T14:07:22,307][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [reindex]
+[2019-01-16T14:07:22,308][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [repository-url]
+[2019-01-16T14:07:22,308][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [transport-netty4]
+[2019-01-16T14:07:22,309][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [tribe]
+[2019-01-16T14:07:22,309][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-ccr]
+[2019-01-16T14:07:22,309][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-core]
+[2019-01-16T14:07:22,310][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-deprecation]
+[2019-01-16T14:07:22,310][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-graph]
+[2019-01-16T14:07:22,311][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-logstash]
+[2019-01-16T14:07:22,311][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-ml]
+[2019-01-16T14:07:22,312][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-monitoring]
+[2019-01-16T14:07:22,312][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-rollup]
+[2019-01-16T14:07:22,312][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-security]
+[2019-01-16T14:07:22,313][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-sql]
+[2019-01-16T14:07:22,313][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-upgrade]
+[2019-01-16T14:07:22,313][INFO ][o.e.p.PluginsService     ] [es-master-0] loaded module [x-pack-watcher]
+[2019-01-16T14:07:22,316][INFO ][o.e.p.PluginsService     ] [es-master-0] no plugins loaded
+[2019-01-16T14:08:38,128][INFO ][o.e.x.s.a.s.FileRolesStore] [es-master-0] parsed [0] roles from file [/elasticsearch/config/roles.yml]
+[2019-01-16T14:08:56,727][INFO ][o.e.d.DiscoveryModule    ] [es-master-0] using discovery type [zen] and host providers [settings]
+[2019-01-16T14:09:04,910][INFO ][o.e.n.Node               ] [es-master-0] initialized
+[2019-01-16T14:09:04,912][INFO ][o.e.n.Node               ] [es-master-0] starting ...
+[2019-01-16T14:09:06,029][INFO ][o.e.t.TransportService   ] [es-master-0] publish_address {10.44.0.2:9300}, bound_addresses {10.44.0.2:9300}
+[2019-01-16T14:09:06,210][INFO ][o.e.b.BootstrapChecks    ] [es-master-0] bound or publishing to a non-loopback address, enforcing bootstrap checks
+[2019-01-16T14:09:09,707][INFO ][o.e.c.s.MasterService    ] [es-master-0] zen-disco-elected-as-master ([0] nodes joined), reason: new_master {es-master-0}{FZPGD1bqRbW105MYCBtnYw}{9cYQt93zRFyW5szy5vSkJA}{10.44.0.2}{10.44.0.2:9300}{xpack.installed=true}
+[2019-01-16T14:09:09,738][INFO ][o.e.c.s.ClusterApplierService] [es-master-0] new_master {es-master-0}{FZPGD1bqRbW105MYCBtnYw}{9cYQt93zRFyW5szy5vSkJA}{10.44.0.2}{10.44.0.2:9300}{xpack.installed=true}, reason: apply cluster state (from master [master {es-master-0}{FZPGD1bqRbW105MYCBtnYw}{9cYQt93zRFyW5szy5vSkJA}{10.44.0.2}{10.44.0.2:9300}{xpack.installed=true} committed version [1] source [zen-disco-elected-as-master ([0] nodes joined)]])
+[2019-01-16T14:09:09,805][INFO ][o.e.n.Node               ] [es-master-0] started
 ```
 
 As we can assert, the cluster is up and running. Easy, wasn't it?
@@ -189,7 +204,7 @@ As we can assert, the cluster is up and running. Easy, wasn't it?
 
 *Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
 
-*Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can uncomment the field in `es-svc.yaml`.
+*Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can add the field in `es-ingest-svc.yaml`.
 ```
 $ kubectl get svc elasticsearch
 NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
@@ -206,15 +221,17 @@ One should see something similar to the following:
 
 ```json
 {
-  "name" : "es-client-76fb6ffdf4-nn5b2",
+  "name" : "es-ingest-0",
   "cluster_name" : "myesdb",
-  "cluster_uuid" : "SEjviHIJQ8-SEloYYcez8w",
+  "cluster_uuid" : "y_wU9c5rRZKqRF8jlxKJMg",
   "version" : {
-    "number" : "6.1.2",
-    "build_hash" : "bd92e7f",
-    "build_date" : "2017-12-17T20:23:25.338Z",
+    "number" : "6.5.4",
+    "build_flavor" : "default",
+    "build_type" : "tar",
+    "build_hash" : "d2ef93d",
+    "build_date" : "2018-12-17T21:17:40.758843Z",
     "build_snapshot" : false,
-    "lucene_version" : "7.1.0",
+    "lucene_version" : "7.5.0",
     "minimum_wire_compatibility_version" : "5.6.0",
     "minimum_index_compatibility_version" : "5.0.0"
   },
@@ -235,10 +252,10 @@ One should see something similar to the following:
   "cluster_name" : "myesdb",
   "status" : "green",
   "timed_out" : false,
-  "number_of_nodes" : 7,
+  "number_of_nodes" : 4,
   "number_of_data_nodes" : 2,
-  "active_primary_shards" : 0,
-  "active_shards" : 0,
+  "active_primary_shards" : 70,
+  "active_shards" : 138,
   "relocating_shards" : 0,
   "initializing_shards" : 0,
   "unassigned_shards" : 0,
@@ -289,8 +306,8 @@ spec:
 
 If one wants to ensure that no more than `n` Elasticsearch nodes will be unavailable at a time, one can optionally (change and) apply the following manifests:
 ```
-kubectl create -f es-master-pdb.yaml
-kubectl create -f es-data-pdb.yaml
+kubectl create -f pdb/es-master-pdb.yaml
+kubectl create -f pdb/es-data-pdb.yaml
 ```
 
 **Note:** This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
@@ -299,7 +316,7 @@ kubectl create -f es-data-pdb.yaml
 
 ## Install plug-ins
 
-The image used in this repo is very minimalist. However, one can install additional plug-ins at will by simply specifying the `ES_PLUGINS_INSTALL` environment variable in the desired pod descriptors. For instance, to install [Google Cloud Storage](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-gcs.html) and [S3](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-s3.html) plug-ins it would be like follows:
+The image used in this repo is standard. However, one can install additional plug-ins at will by simply specifying the `ES_PLUGINS_INSTALL` environment variable in the desired pod descriptors. For instance, to install [Google Cloud Storage](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-gcs.html) and [S3](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-s3.html) plug-ins it would be like follows:
 ```yaml
 - name: "ES_PLUGINS_INSTALL"
   value: "repository-gcs,repository-s3"
@@ -330,8 +347,8 @@ The job is configured to run once a day at _1 minute past midnight and delete in
 
 **Notes**
 
-- One can change the schedule by editing the cron notation in `es-curator.yaml`.
-- One can change the action (e.g. delete older than 3 days) by editing the `es-curator-config.yaml`.
+- One can change the schedule by editing the cron notation in `es-curator-cronjob.yaml`.
+- One can change the action (e.g. delete older than 3 days) by editing the `es-curator-configmap.yaml`.
 - The definition of the `action_file.yaml` is quite self-explaining for simple set-ups. For more advanced configuration options, please consult the [Curator Documentation](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/index.html).
 
 If one wants to remove the curator job, just run:
@@ -345,23 +362,7 @@ kubectl delete configmap curator-config
 
 ## Kibana
 
-Additionally, one can also add Kibana to the mix. In order to do so, one can use the Elastic upstream open source docker image without x-pack.
-
-### Deploy
-
-```
-kubectl apply -f kibana-configmap.yaml
-kubectl apply -f kibana-external-ingress.yaml
-kubectl apply -f kibana-service-account.yaml
-kubectl apply -f kibana-svc.yaml
-kubectl apply -f kibana.yaml
-```
-
 Kibana will be available through service `kibana`, and one will be able to access it from within the cluster or proxy it through the Kubernetes API Server, as follows:
-
-```
-https://<API_SERVER_URL>/api/v1/namespaces/default/services/kibana:http/proxy
-```
 
 There is also an Ingress to expose the service publicly or simply use the service nodeport.
 In the case one proceeds to do so, one must change the environment variable `SERVER_BASEPATH` to the match their environment.
@@ -373,7 +374,7 @@ The default value for this environment variable is 2, meaning a cluster will nee
 
 
 ### How can I customize `elasticsearch.yaml`?
-Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/config/` [(see the Elasticsearch docs for more)](https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html#config-files-location) or edit the provided ConfigMap.
+Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/config/` [(see the Elasticsearch docs for more)](https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html#config-files-location) or edit the provided ConfigMap in file `es-configmap.yaml`.
 
 ## Troubleshooting
 

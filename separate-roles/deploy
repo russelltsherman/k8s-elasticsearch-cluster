@@ -21,11 +21,20 @@ kctl() {
 # Deploy ElasticSearch configmap
 kctl apply -f es-configmap.yaml
 
-# As an alternative, replace  master, client and data manifests applied above
-# with the ones below to have a three-node cluster with all roles in all nodes.
-kctl apply -f es-full-svc.yaml
-kctl apply -f es-full-statefulset.yaml
-until kctl rollout status statefulset es-full  > /dev/null 2>&1; do sleep 1; printf "."; done
+# Deploy Elasticsearch master node and wait until it's up
+kctl apply -f es-master-svc.yaml
+kctl apply -f es-master-statefulset.yaml
+until kctl rollout status statefulset es-master  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch client node and wait until it's up
+kctl apply -f es-ingest-svc.yaml
+kctl apply -f es-ingest-statefulset.yaml
+until kctl rollout status deployment es-client  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Elasticsearch data node and wait until it's up
+kctl apply -f es-data-svc.yaml
+kctl apply -f es-data-statefulset.yaml
+until kctl rollout status statefulset es-data  > /dev/null 2>&1; do sleep 1; printf "."; done
 
 # Deploy Curator
 kctl apply -f es-curator-configmap.yaml

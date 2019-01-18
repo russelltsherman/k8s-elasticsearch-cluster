@@ -1,23 +1,17 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: elasticsearch-master
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: es-master
   labels:
     component: elasticsearch
     role: master
 spec:
-  replicas: 1
+  selector:
+    matchLabels:
+      component: elasticsearch
+      role: master
+  serviceName: elasticsearch-master
+  replicas: 1 # Change this to 3 to have High-Availability
   template:
     metadata:
       labels:
@@ -48,7 +42,7 @@ spec:
         - name: CLUSTER_NAME
           value: myesdb
         - name: NUMBER_OF_MASTERS
-          value: "1"
+          value: "1" # Change this to 2 to have High-Availability
         - name: NODE_MASTER
           value: "true"
         - name: NODE_INGEST
@@ -63,37 +57,34 @@ spec:
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
-        #- name: "ES_PLUGINS_INSTALL"
-        #  value: "x-pack"
         resources:
+          requests:
+            cpu: 1
           limits:
             cpu: 1
         ports:
         - containerPort: 9300
           name: transport
-        - containerPort: 9200
-          name: http
         livenessProbe:
           tcpSocket:
             port: transport
-          initialDelaySeconds: 180
+          initialDelaySeconds: 120
           periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /_cluster/health
-            port: http
-          initialDelaySeconds: 180
-          timeoutSeconds: 60
         volumeMounts:
-        - name: storage
+        - name: elasticsearch-master
           mountPath: /data
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
       volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: elasticsearch-master
       - name : config
         configMap:
           name: es-configmap
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-master
+    spec:
+      accessModes: [ ReadWriteOnce ]
+      resources:
+        requests:
+          storage: 2Gi

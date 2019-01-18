@@ -1,22 +1,16 @@
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: elasticsearch-ingest
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
----
-apiVersion: apps/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: es-ingest
   labels:
     component: elasticsearch
     role: ingest
 spec:
+  selector:
+    matchLabels:
+      component: elasticsearch
+      role: ingest
+  serviceName: elasticsearch-ingest
   replicas: 1
   template:
     metadata:
@@ -49,21 +43,23 @@ spec:
           value: myesdb
         - name: NODE_MASTER
           value: "false"
+        - name: NODE_INGEST
+          value: "true"
         - name: NODE_DATA
           value: "false"
         - name: HTTP_ENABLE
           value: "true"
         - name: ES_JAVA_OPTS
-          value: -Xms1g -Xmx1g
+          value: -Xms512m -Xmx512m
         - name: NETWORK_HOST
           value: _site_,_lo_
         - name: PROCESSORS
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
-        #- name: "ES_PLUGINS_INSTALL"
-        #  value: "x-pack"
         resources:
+          requests:
+            cpu: 1
           limits:
             cpu: 2
         ports:
@@ -72,27 +68,26 @@ spec:
         - containerPort: 9300
           name: transport
         livenessProbe:
-          tcpSocket:
-            port: transport
-          initialDelaySeconds: 180
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
+          httpGet:                                                                                                                                                          
             path: /_cluster/health
-            port: http
-          initialDelaySeconds: 180
+            port: 9200
+          initialDelaySeconds: 120
           timeoutSeconds: 60
         volumeMounts:
-        - name: storage
+        - name: elasticsearch-ingest
           mountPath: /data
         - name: config
           mountPath: /elasticsearch/config/elasticsearch.yml
           subPath: elasticsearch.yml
       volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: elasticsearch-ingest
       - name : config
         configMap:
           name: es-configmap
-
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-ingest
+    spec:
+      accessModes: [ ReadWriteOnce ]
+      resources:
+        requests:
+          storage: 5Gi

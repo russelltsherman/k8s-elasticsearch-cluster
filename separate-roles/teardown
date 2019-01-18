@@ -30,10 +30,14 @@ kctl delete -f es-curator-configmap.yaml
 kctl delete -f es-curator-cronjob.yaml
 
 # Delete Elasticsearch nodes
-kctl delete -f es-full.yaml
+kctl delete -f es-master-statefulset.yaml
+kctl delete -f es-ingest-statefulset.yaml
+kctl delete -f es-data-statefulset.yaml
 
 # Delete Elasticsearch services
-kctl delete -f es-full-svc.yaml
+kctl delete -f es-ingest-svc.yaml
+kctl delete -f es-master-svc.yaml
+kctl delete -f es-data-svc.yaml
 
 # Delete Cerebro
 kctl delete -f cerebro.yaml

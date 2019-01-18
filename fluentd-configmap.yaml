@@ -446,6 +446,9 @@ data:
       request_timeout 45s
       reload_connections false
       logstash_format true
+      template_name template-logstash
+      template_file /etc/fluent/config.d/template-logstash.json
+      template_overwrite true
       id_key _hash        # specify same key name which is specified in hash_id_key
       remove_keys _hash   # Elasticsearch doesn't like keys that start with _
       <buffer>
@@ -463,3 +466,11 @@ data:
       </buffer>
     </match>
 
+  template-logstash.json: |-
+    {
+      "index_patterns": ["logstash*"],
+      "settings": {
+        "number_of_shards": 3,
+        "number_of_replicas": 0
+      }
+    }
