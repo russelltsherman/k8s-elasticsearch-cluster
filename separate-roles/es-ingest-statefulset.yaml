@@ -29,7 +29,7 @@ spec:
           privileged: true
       containers:
       - name: es-ingest
-        image: carlosedp/docker-elasticsearch-kubernetes:6.5.4
+        image: carlosedp/docker-elasticsearch-kubernetes:6.6.0
         env:
         - name: NAMESPACE
           valueFrom:

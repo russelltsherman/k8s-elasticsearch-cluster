@@ -30,7 +30,7 @@ spec:
           privileged: true
       containers:
       - name: es-data
-        image: carlosedp/docker-elasticsearch-kubernetes:6.5.4
+        image: carlosedp/docker-elasticsearch-kubernetes:6.6.0
         resources:
           limits:
             cpu: 2

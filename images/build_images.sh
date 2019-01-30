@@ -2,7 +2,6 @@
 #
 # To update image versions and the Kubernetes manifests edit:
 # - ./build_images.sh - #Versions section
-# - ./debian-oraclejava/Dockerfile - Versions and download path for new Java
 # - ./docker-elasticsearch/Dockerfile - FROM in case of Java update
 # - ./docker-kibana/Dockerfile - LOGTRAIL_VERSION line
 # - ./fluentd-elasticsearch/Gemfile - Gem versions
@@ -19,8 +18,7 @@
 # - prometheus_exporter/elasticsearch-exporter-deployment.yaml - "image" line
 
 # Versions
-JAVA_VERSION=8-172
-ES_VERSION=6.5.4
+ES_VERSION=6.6.0
 CURATOR_VERSION=5.6.0
 FLUENTD_VERSION=1.3.3
 CEREBRO_VERSION=0.8.1

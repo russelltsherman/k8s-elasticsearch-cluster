@@ -1,5 +1,5 @@
 # kubernetes-elasticsearch-cluster
-Elasticsearch 6.5.4 cluster on top of Kubernetes made easy.
+Elasticsearch 6.6.0 cluster on top of Kubernetes made easy.
 
 These files are the project manifests and image generation files used on the article https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9.
 
@@ -7,20 +7,25 @@ The images in this project were built for the ARM64 and AMD64 platform. A hybrid
 
 ### Table of Contents
 
-* [(Very) Important Notes](#important-notes)
-* [Pre-Requisites](#pre-requisites)
-* [Build container image (optional)](#build-images)
-* [Test](#test)
-  * [Deploy](#deploy)
-  * [Access the service](#access-the-service)
-* [Pod anti-affinity](#pod-anti-affinity)
-* [Availability](#availability)
-* [Deploy with Helm](#helm)
-* [Install plug-ins](#plugins)
-* [Clean-up with Curator](#curator)
-* [Kibana](#kibana)
-* [FAQ](#faq)
-* [Troubleshooting](#troubleshooting)
+- [kubernetes-elasticsearch-cluster](#kubernetes-elasticsearch-cluster)
+    - [Table of Contents](#table-of-contents)
+  - [Abstract](#abstract)
+  - [(Very) Important notes](#very-important-notes)
+  - [Pre-requisites](#pre-requisites)
+  - [Build images](#build-images)
+    - [Deploy](#deploy)
+    - [Access the service](#access-the-service)
+  - [Pod anti-affinity](#pod-anti-affinity)
+  - [Availability](#availability)
+  - [Install plug-ins](#install-plug-ins)
+  - [Clean-up with Curator](#clean-up-with-curator)
+  - [Kibana](#kibana)
+  - [FAQ](#faq)
+    - [Why does `NUMBER_OF_MASTERS` differ from number of master-replicas?](#why-does-numberofmasters-differ-from-number-of-master-replicas)
+    - [How can I customize `elasticsearch.yaml`?](#how-can-i-customize-elasticsearchyaml)
+  - [Troubleshooting](#troubleshooting)
+    - [No up-and-running site-local](#no-up-and-running-site-local)
+    - [(IPv6) org.elasticsearch.bootstrap.StartupException: BindTransportException](#ipv6-orgelasticsearchbootstrapstartupexception-bindtransportexception)
 
 ## Abstract
 

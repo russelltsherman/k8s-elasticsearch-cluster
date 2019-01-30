@@ -25,7 +25,7 @@ spec:
       serviceAccount: elk
       containers:
       - name: kibana
-        image: carlosedp/docker-kibana:6.5.4
+        image: carlosedp/docker-kibana:6.6.0
         env:
         - name: KIBANA_ES_URL
           value: "http://elasticsearch:9200"
