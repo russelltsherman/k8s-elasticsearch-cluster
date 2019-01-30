@@ -1,4 +1,4 @@
-FROM node:10.14.1-stretch-slim
+FROM node:10.14.1-stretch
 
 ARG VERSION
 ENV KIBANA_VERSION=$VERSION
