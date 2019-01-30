@@ -14,3 +14,19 @@ spec:
     port: 9300
     protocol: TCP
   clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-master-api
+  labels:
+    component: elasticsearch
+    role: master
+spec:
+  selector:
+    component: elasticsearch
+    role: master
+  ports:
+  - name: http
+    port: 9200
+  type: NodePort

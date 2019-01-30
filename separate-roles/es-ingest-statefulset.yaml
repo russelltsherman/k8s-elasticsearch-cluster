@@ -47,8 +47,6 @@ spec:
           value: "true"
         - name: NODE_DATA
           value: "false"
-        - name: HTTP_ENABLE
-          value: "true"
         - name: ES_JAVA_OPTS
           value: -Xms512m -Xmx512m
         - name: NETWORK_HOST
@@ -68,7 +66,7 @@ spec:
         - containerPort: 9300
           name: transport
         livenessProbe:
-          httpGet:                                                                                                                                                          
+          httpGet:
             path: /_cluster/health
             port: 9200
           initialDelaySeconds: 120

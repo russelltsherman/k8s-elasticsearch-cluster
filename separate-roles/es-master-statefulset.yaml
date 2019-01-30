@@ -49,8 +49,6 @@ spec:
           value: "false"
         - name: NODE_DATA
           value: "false"
-        - name: HTTP_ENABLE
-          value: "false"
         - name: ES_JAVA_OPTS
           value: -Xms512m -Xmx512m
         - name: PROCESSORS
@@ -65,6 +63,8 @@ spec:
         ports:
         - containerPort: 9300
           name: transport
+        - containerPort: 9200
+          name: http
         livenessProbe:
           tcpSocket:
             port: transport

@@ -20,7 +20,6 @@ bootstrap:
   memory_lock: ${MEMORY_LOCK}
 
 http:
-  enabled: ${HTTP_ENABLE}
   compression: true
   cors:
     enabled: ${HTTP_CORS_ENABLE}
