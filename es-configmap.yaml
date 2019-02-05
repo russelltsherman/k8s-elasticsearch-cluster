@@ -23,7 +23,6 @@ data:
       memory_lock: ${MEMORY_LOCK}
 
     http:
-      enabled: ${HTTP_ENABLE}
       compression: true
       cors:
         enabled: ${HTTP_CORS_ENABLE}
@@ -41,7 +40,7 @@ data:
 
     cluster.routing.allocation.enable: all
     cluster.routing.rebalance.enable: all
-    cluster.routing.allocation.allow_rebalance: indices_all_active
+    cluster.routing.allocation.allow_rebalance: all
 
 kind: ConfigMap
 metadata:
