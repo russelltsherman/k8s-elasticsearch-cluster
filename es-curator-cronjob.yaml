@@ -1,7 +1,9 @@
+---
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: curator
+  namespace: logging
 spec:
   schedule: 0 8 * * *
   jobTemplate:

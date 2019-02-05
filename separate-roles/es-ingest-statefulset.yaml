@@ -1,7 +1,9 @@
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: es-ingest
+  namespace: logging
   labels:
     component: elasticsearch
     role: ingest

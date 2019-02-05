@@ -1,4 +1,9 @@
+---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: es-configmap
+  namespace: logging
 data:
   elasticsearch.yml: |
     cluster:
@@ -42,7 +47,3 @@ data:
     cluster.routing.rebalance.enable: all
     cluster.routing.allocation.allow_rebalance: all
 
-kind: ConfigMap
-metadata:
-  creationTimestamp: null
-  name: es-configmap

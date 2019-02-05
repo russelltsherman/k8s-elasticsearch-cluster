@@ -1,7 +1,9 @@
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: elasticsearch-hq-pv-claim
+  namespace: logging
   labels:
     component: elk
     role: elasticsearch-hq
@@ -16,6 +18,7 @@ apiVersion: v1
 kind: ReplicationController
 metadata:
   name: elasticsearch-hq
+  namespace: logging
   labels:
     component: elk
     role: elasticsearch-hq
@@ -54,6 +57,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: elasticsearch-hq
+  namespace: logging
   labels:
     component: elk
     role: elasticsearch-hq
@@ -72,6 +76,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: elasticsearch-hq
+  namespace: logging
   annotations:
     traefik.frontend.rule.type: PathPrefix
 spec:

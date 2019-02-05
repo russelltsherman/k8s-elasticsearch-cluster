@@ -3,11 +3,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: elk
+  namespace: logging
 ---
 apiVersion: v1
 kind: ReplicationController
 metadata:
   name: kibana
+  namespace: logging
   labels:
     component: elk
     role: kibana
