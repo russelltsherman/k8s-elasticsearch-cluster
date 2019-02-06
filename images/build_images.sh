@@ -52,7 +52,7 @@ function build_image {
     #     return
     # fi
     docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH --build-arg VERSION=$VERSION --build-arg ARCH=$ARCH --build-arg CPU_ARCH=$CPU_ARCH ./$IMAGE
-    if $?
+    if [ $? -eq 0 ]; then
         echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
         docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
     else

@@ -3,14 +3,15 @@ FROM debian:stretch-slim
 ARG VERSION
 ENV KIBANA_VERSION=$VERSION
 
+ENV NODEJS_VERSION 10.14.1
 ENV LOGTRAIL_VERSION 0.1.30
 
 RUN apt-get update -q && \
-    apt-get install -q -y --no-install-recommends ca-certificates curl jq gnupg2 && \
-    curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt-get install -y nodejs && \
-    npm i -g n && \
-    n 10.14.1 && \
+    apt-get install -q -y --no-install-recommends ca-certificates curl jq && \
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash && \
+    export NVM_DIR="$HOME/.nvm" && \
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+    nvm install ${NODEJS_VERSION} && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN echo "Downloading Kibana version $KIBANA_VERSION " && \
@@ -18,7 +19,7 @@ RUN echo "Downloading Kibana version $KIBANA_VERSION " && \
     mv /opt/kibana-${KIBANA_VERSION}-linux-x86_64 /opt/kibana && \
     rm -rf /opt/kibana/node && \
     mkdir -p /opt/kibana/node/bin && \
-    ln -sf /usr/local/bin/node /opt/kibana/node/bin/node
+    ln -sf /root/.nvm/versions/node/v${NODEJS_VERSION}/bin/node /opt/kibana/node/bin/node
 
 RUN LOGTRAIL_DL=$(curl -s https://api.github.com/repos/sivasamyk/logtrail/releases/latest | jq -r '.assets[] | select(.name | contains("${KIBANA_VERSION}")) | .browser_download_url') && \
     if [ -z ${LOGTRAIL_DL} ]; then \
