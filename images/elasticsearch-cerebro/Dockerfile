@@ -1,4 +1,4 @@
-FROM openjdk:8u181-jdk-stretch
+FROM openjdk:8u181-jdk-slim-stretch
 
 ENV JAVA_HOME=/opt/java
 

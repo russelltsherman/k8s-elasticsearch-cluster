@@ -47,10 +47,10 @@ function build_image {
     echo "====================================================================="
     echo "Building image $REGISTRY/$IMAGE:$VERSION-$ARCH"
     echo "====================================================================="
-    if [[ ! "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
-        echo "Image $REGISTRY/$IMAGE:$VERSION-$ARCH already exists, skipping."
-        return
-    fi
+    # if [[ ! "$(docker images -q $REGISTRY/$IMAGE:$VERSION-$ARCH 2> /dev/null)" == "" ]]; then
+    #     echo "Image $REGISTRY/$IMAGE:$VERSION-$ARCH already exists, skipping."
+    #     return
+    # fi
     docker build -t $REGISTRY/$IMAGE:$VERSION-$ARCH --build-arg VERSION=$VERSION --build-arg ARCH=$ARCH --build-arg CPU_ARCH=$CPU_ARCH ./$IMAGE
     echo "Pushing image $REGISTRY/$IMAGE:$VERSION-$ARCH"
     docker push $REGISTRY/$IMAGE:$VERSION-$ARCH
