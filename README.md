@@ -1,14 +1,15 @@
 # kubernetes-elasticsearch-cluster
+
 Elasticsearch 6.6.0 cluster on top of Kubernetes made easy.
 
-These files are the project manifests and image generation files used on the article https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9.
+These files are the project manifests and image generation files used on the article [https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9](https://medium.com/@carlosedp/log-aggregation-with-elasticsearch-fluentd-and-kibana-stack-on-arm64-kubernetes-cluster-516fb64025f9).
 
 The images in this project were built for the ARM64 and AMD64 platform. A hybrid cluster (Intel and ARM) can be created using these files.
 
-### Table of Contents
+## Table of Contents
 
 - [kubernetes-elasticsearch-cluster](#kubernetes-elasticsearch-cluster)
-    - [Table of Contents](#table-of-contents)
+  - [Table of Contents](#table-of-contents)
   - [Abstract](#abstract)
   - [(Very) Important notes](#very-important-notes)
   - [Pre-requisites](#pre-requisites)
@@ -21,8 +22,6 @@ The images in this project were built for the ARM64 and AMD64 platform. A hybrid
   - [Clean-up with Curator](#clean-up-with-curator)
   - [Kibana](#kibana)
   - [FAQ](#faq)
-    - [Why does `NUMBER_OF_MASTERS` differ from number of master-replicas?](#why-does-numberofmasters-differ-from-number-of-master-replicas)
-    - [How can I customize `elasticsearch.yaml`?](#how-can-i-customize-elasticsearchyaml)
   - [Troubleshooting](#troubleshooting)
     - [No up-and-running site-local](#no-up-and-running-site-local)
     - [(IPv6) org.elasticsearch.bootstrap.StartupException: BindTransportException](#ipv6-orgelasticsearchbootstrapstartupexception-bindtransportexception)
@@ -31,36 +30,30 @@ The images in this project were built for the ARM64 and AMD64 platform. A hybrid
 
 [Elasticsearch best-practices recommend to separate nodes in three roles](https://www.elastic.co/guide/en/elasticsearch/reference/6.5/modules-node.html):
 
-* `Master` nodes - intended for clustering management only, no data, no HTTP API
-* `Client` nodes - intended for client usage, no data, with HTTP API
-* `Data` nodes - intended for storing and indexing data, no HTTP API
+- `Master` nodes - intended for clustering management only, no data, no HTTP API
+- `Client` nodes - intended for client usage, no data, with HTTP API
+- `Data` nodes - intended for storing and indexing data, no HTTP API
 
 This is the recommended way to deploy ElasticSearch in case your nodes are not CPU/Memory limited. The manifests on `separate-roles` show how to provision a production grade scenario consisting of 1 master, 1 client and 2 data nodes. The set of manifests in the root deploys a three-node ES cluster where all nodes perform all roles.
 
-<a id="important-notes"\>
-
 ## (Very) Important notes
 
-* Elasticsearch pods need for an init-container to run in privileged mode, so it can set some VM options. For that to happen, the `kubelet` should be running with args `--allow-privileged`, otherwise
+- Elasticsearch pods need for an init-container to run in privileged mode, so it can set some VM options. For that to happen, the `kubelet` should be running with args `--allow-privileged`, otherwise
 the init-container will fail to run.
 
-* By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository. In the full-role nodes, all nodes start with 1GB heap.
+- By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository. In the full-role nodes, all nodes start with 1GB heap.
 
-* In this project,the pods use the Default `StorageClass` for storing data in each data node container. It could be adapted to other storage targets according to one's needs.
+- In this project,the pods use the Default `StorageClass` for storing data in each data node container. It could be adapted to other storage targets according to one's needs.
 
-* The all pods (master, data and ingest) are deployed as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
+- The all pods (master, data and ingest) are deployed as a `StatefulSet`. These use a `volumeClaimTemplates` to provision persistent storage for each pod.
 
-* By default, `PROCESSORS` is set to `1` with a limit of `3` CPUs. This may not be enough for some deployments, especially at startup time. Adjust `resources.limits.cpu` and/or `livenessProbe` accordingly if required. Note that `resources.limits.cpu` must be an integer.
-
-<a id="pre-requisites"\>
+- By default, `PROCESSORS` is set to `1` with a limit of `3` CPUs. This may not be enough for some deployments, especially at startup time. Adjust `resources.limits.cpu` and/or `livenessProbe` accordingly if required. Note that `resources.limits.cpu` must be an integer.
 
 ## Pre-requisites
 
-* Kubernetes cluster with (tested with v1.9.3 and 1.13.1 on-premises cluster).
-* `kubectl` configured to access the cluster master API Server
-* For curator jobs to be cleaned atomatically, the `- --feature-gates=TTLAfterFinished=true` feature gate should be enabled on the static manifests (`/etc/kubernetes/manifests`).
-
-<a id="build-images"\>
+- Kubernetes cluster with (tested with v1.9.3 and 1.13.1 on-premises cluster).
+- `kubectl` configured to access the cluster master API Server
+- For curator jobs to be cleaned atomatically, the `- --feature-gates=TTLAfterFinished=true` feature gate should be enabled on the static manifests (`/etc/kubernetes/manifests`).
 
 ## Build images
 
@@ -75,7 +68,7 @@ This can be uncommented on the `deploy` script or using the instruction below.
 
 Create the namespace and cofiguration:
 
-```
+```bash
 kubectl create namespace logging
 alias kctl='kubectl --namespace logging'
 
@@ -84,14 +77,14 @@ kctl apply -f es-configmap.yaml
 
 Or to have a three-node cluster with all roles, use this:
 
-```
+```bash
 kctl apply -f es-full-svc.yaml
 kctl apply -f es-full-statefulset.yaml
 ```
 
 To have separate roles on each node, use this:
 
-```
+```bash
 # Deploy Elasticsearch master node and wait until it's up
 kctl apply -f ./separate-roles/es-master-svc.yaml
 kctl apply -f ./separate-roles/es-master-statefulset.yaml
@@ -110,7 +103,7 @@ until kctl rollout status statefulset es-data  > /dev/null 2>&1; do sleep 1; pri
 
 This is common to any option:
 
-```
+```bash
 # Deploy Curator
 kctl apply -f es-curator-configmap.yaml
 kctl apply -f es-curator-cronjob.yaml
@@ -133,7 +126,7 @@ kctl apply -f fluentd-daemonset.yaml
 Let's check if everything is working properly:
 Check one of the Elasticsearch master nodes logs:
 
-```
+```bash
 $ kubectl get svc,deployment,statefulsets,pods -l component=elasticsearch
 NAME                                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
 service/elasticsearch                    NodePort    10.106.88.175   <none>        9200:30230/TCP   73m
@@ -154,7 +147,8 @@ pod/es-master-0   1/1     Running   0          6h46m
 ```
 
 Check one of the Elasticsearch master nodes logs:
-```
+
+```bash
 $ kubectl logs po/es-master-6f6449b7f-jwbcb
 chown: changing ownership of '/elasticsearch/config/elasticsearch.yml': Read-only file system
 [2019-01-16T14:06:37,974][WARN ][o.e.c.l.LogConfigurator  ] [es-master-0] Some logging configurations have %marker but don't have %node_name. We will automatically add %node_name to the pattern to ease the migration for users who customize log4j2.properties but will stop this behavior in 7.0. You should manually replace `%node_name` with `[%node_name]%marker ` in these locations:
@@ -207,10 +201,11 @@ As we can assert, the cluster is up and running. Easy, wasn't it?
 
 ### Access the service
 
-*Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
+-Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
 
-*Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can add the field in `es-ingest-svc.yaml`.
-```
+-Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can add the field in `es-ingest-svc.yaml`.
+
+```bash
 $ kubectl get svc elasticsearch
 NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 elasticsearch   ClusterIP   10.100.220.56   <none>        9200/TCP   3m
@@ -218,8 +213,8 @@ elasticsearch   ClusterIP   10.100.220.56   <none>        9200/TCP   3m
 
 From any host on the Kubernetes cluster (that's running `kube-proxy` or similar), run:
 
-```
-$ curl http://10.100.220.56:9200
+```bash
+curl http://10.100.220.56:9200
 ```
 
 One should see something similar to the following:
@@ -246,8 +241,8 @@ One should see something similar to the following:
 
 Or if one wants to see cluster information:
 
-```
-$ curl http://10.100.220.56:9200/_cluster/health?pretty
+```bash
+curl http://10.100.220.56:9200/_cluster/health?pretty
 ```
 
 One should see something similar to the following:
@@ -271,7 +266,6 @@ One should see something similar to the following:
   "active_shards_percent_as_number" : 100.0
 }
 ```
-<a id="pod-anti-affinity">
 
 ## Pod anti-affinity
 
@@ -283,6 +277,7 @@ It is then **highly recommended**, in the context of the solution described in t
 in order to guarantee that two data pods will never run on the same node.
 
 Here's an example:
+
 ```yaml
 spec:
   affinity:
@@ -305,23 +300,21 @@ spec:
   - (...)
 ```
 
-<a id="availability">
-
 ## Availability
 
 If one wants to ensure that no more than `n` Elasticsearch nodes will be unavailable at a time, one can optionally (change and) apply the following manifests:
-```
+
+```bash
 kubectl create -f pdb/es-master-pdb.yaml
 kubectl create -f pdb/es-data-pdb.yaml
 ```
 
-**Note:** This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
-
-<a id="plugins">
+-*Note:** This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
 
 ## Install plug-ins
 
 The image used in this repo is standard. However, one can install additional plug-ins at will by simply specifying the `ES_PLUGINS_INSTALL` environment variable in the desired pod descriptors. For instance, to install [Google Cloud Storage](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-gcs.html) and [S3](https://www.elastic.co/guide/en/elasticsearch/plugins/current/repository-s3.html) plug-ins it would be like follows:
+
 ```yaml
 - name: "ES_PLUGINS_INSTALL"
   value: "repository-gcs,repository-s3"
@@ -329,20 +322,18 @@ The image used in this repo is standard. However, one can install additional plu
 
 This is not tested in current image, please report on Issues any errors or successes.
 
-<a id="curator">
-
 ## Clean-up with Curator
 
 Additionally, one can run a [CronJob](http://kubernetes.io/docs/user-guide/cron-jobs/) that will periodically run [Curator](https://github.com/elastic/curator) to clean up indices (or do other actions on the Elasticsearch cluster).
 
-```
+```bash
 kubectl create -f es-curator-config.yaml
 kubectl create -f es-curator_v1beta1.yaml
 ```
 
 Please, confirm the job has been created.
 
-```
+```bash
 $ kubectl get cronjobs
 NAME      SCHEDULE    SUSPEND   ACTIVE    LAST-SCHEDULE
 curator   1 0 * * *   False     0         <none>
@@ -350,7 +341,7 @@ curator   1 0 * * *   False     0         <none>
 
 The job is configured to run once a day at _1 minute past midnight and delete indices that are older than 30 days_.
 
-**Notes**
+-*Notes**
 
 - One can change the schedule by editing the cron notation in `es-curator-cronjob.yaml`.
 - One can change the action (e.g. delete older than 3 days) by editing the `es-curator-configmap.yaml`.
@@ -358,12 +349,10 @@ The job is configured to run once a day at _1 minute past midnight and delete in
 
 If one wants to remove the curator job, just run:
 
-```
+```bash
 kubectl delete cronjob curator
 kubectl delete configmap curator-config
 ```
-
-<a id="kibana">
 
 ## Kibana
 
@@ -374,11 +363,12 @@ In the case one proceeds to do so, one must change the environment variable `SER
 
 ## FAQ
 
-### Why does `NUMBER_OF_MASTERS` differ from number of master-replicas?
-The default value for this environment variable is 2, meaning a cluster will need a minimum of 2 master nodes to operate. If a cluster has 3 masters and one dies, the cluster still works. Minimum master nodes are usually `n/2 + 1`, where `n` is the number of master nodes in a cluster. If a cluster has 5 master nodes, one should have a minimum of 3, less than that and the cluster _stops_. If one scales the number of masters, make sure to update the minimum number of master nodes through the Elasticsearch API as setting environment variable will only work on cluster setup. More info: https://www.elastic.co/guide/en/elasticsearch/guide/1.x/_important_configuration_changes.html#_minimum_master_nodes
+**Why does `NUMBER_OF_MASTERS` differ from number of master-replicas?**
 
+The default value for this environment variable is 2, meaning a cluster will need a minimum of 2 master nodes to operate. If a cluster has 3 masters and one dies, the cluster still works. Minimum master nodes are usually `n/2 + 1`, where `n` is the number of master nodes in a cluster. If a cluster has 5 master nodes, one should have a minimum of 3, less than that and the cluster _stops_. If one scales the number of masters, make sure to update the minimum number of master nodes through the Elasticsearch API as setting environment variable will only work on cluster setup. [More info](https://www.elastic.co/guide/en/elasticsearch/guide/1.x/_important_configuration_changes.html#_minimum_master_nodes).
 
-### How can I customize `elasticsearch.yaml`?
+**How can I customize `elasticsearch.yaml`?**
+
 Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/config/` [(see the Elasticsearch docs for more)](https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html#config-files-location) or edit the provided ConfigMap in file `es-configmap.yaml`.
 
 ## Troubleshooting
@@ -386,31 +376,32 @@ Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/confi
 ### No up-and-running site-local
 
 One of the errors one may come across when running the setup is the following error:
-```
+
+```bash
 [2016-11-29T01:28:36,515][WARN ][o.e.b.ElasticsearchUncaughtExceptionHandler] [] uncaught exception in thread [main]
 org.elasticsearch.bootstrap.StartupException: java.lang.IllegalArgumentException: No up-and-running site-local (private) addresses found, got [name:lo (lo), name:eth0 (eth0)]
-	at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:116) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.bootstrap.Elasticsearch.execute(Elasticsearch.java:103) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.cli.SettingCommand.execute(SettingCommand.java:54) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.cli.Command.mainWithoutErrorHandling(Command.java:96) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.cli.Command.main(Command.java:62) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:80) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:73) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:116) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Elasticsearch.execute(Elasticsearch.java:103) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.cli.SettingCommand.execute(SettingCommand.java:54) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.cli.Command.mainWithoutErrorHandling(Command.java:96) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.cli.Command.main(Command.java:62) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:80) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:73) ~[elasticsearch-5.0.1.jar:5.0.1]
 Caused by: java.lang.IllegalArgumentException: No up-and-running site-local (private) addresses found, got [name:lo (lo), name:eth0 (eth0)]
-	at org.elasticsearch.common.network.NetworkUtils.getSiteLocalAddresses(NetworkUtils.java:187) ~[elasticsearch-5.0.1.jar:5.0.1]
-	at org.elasticsearch.common.network.NetworkService.resolveInternal(NetworkService.java:246) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.common.network.NetworkService.resolveInetAddresses(NetworkService.java:220) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.common.network.NetworkService.resolveBindHostAddresses(NetworkService.java:130) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.transport.TcpTransport.bindServer(TcpTransport.java:575) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.transport.netty4.Netty4Transport.doStart(Netty4Transport.java:182) ~[?:?]
- 	at org.elasticsearch.common.component.AbstractLifecycleComponent.start(AbstractLifecycleComponent.java:68) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.transport.TransportService.doStart(TransportService.java:182) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.common.component.AbstractLifecycleComponent.start(AbstractLifecycleComponent.java:68) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.node.Node.start(Node.java:525) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.bootstrap.Bootstrap.start(Bootstrap.java:211) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.bootstrap.Bootstrap.init(Bootstrap.java:288) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:112) ~[elasticsearch-5.0.1.jar:5.0.1]
- 	... 6 more
+at org.elasticsearch.common.network.NetworkUtils.getSiteLocalAddresses(NetworkUtils.java:187) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.common.network.NetworkService.resolveInternal(NetworkService.java:246) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.common.network.NetworkService.resolveInetAddresses(NetworkService.java:220) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.common.network.NetworkService.resolveBindHostAddresses(NetworkService.java:130) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.transport.TcpTransport.bindServer(TcpTransport.java:575) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.transport.netty4.Netty4Transport.doStart(Netty4Transport.java:182) ~[?:?]
+at org.elasticsearch.common.component.AbstractLifecycleComponent.start(AbstractLifecycleComponent.java:68) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.transport.TransportService.doStart(TransportService.java:182) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.common.component.AbstractLifecycleComponent.start(AbstractLifecycleComponent.java:68) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.node.Node.start(Node.java:525) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Bootstrap.start(Bootstrap.java:211) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Bootstrap.init(Bootstrap.java:288) ~[elasticsearch-5.0.1.jar:5.0.1]
+at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:112) ~[elasticsearch-5.0.1.jar:5.0.1]
+... 6 more
 [2016-11-29T01:28:37,448][INFO ][o.e.n.Node               ] [kIEYQSE] stopping ...
 [2016-11-29T01:28:37,451][INFO ][o.e.n.Node               ] [kIEYQSE] stopped
 [2016-11-29T01:28:37,452][INFO ][o.e.n.Node               ] [kIEYQSE] closing ...
@@ -421,6 +412,7 @@ This is related to how the container binds to network ports (defaults to ``_loca
 Please see [the documentation](https://github.com/pires/docker-elasticsearch#environment-variables) for reference of options.
 
 In order to workaround this, set `NETWORK_HOST` environment variable in the pod descriptors as follows:
+
 ```yaml
 - name: "NETWORK_HOST"
   value: "_eth0_" #_p1p1_ if interface name is p1p1, _ens4_ if interface name is ens4, and so on.
@@ -432,6 +424,7 @@ Intermittent failures occur when the local network interface has both IPv4 and I
 If the IPv4 address is chosen first, Elasticsearch starts correctly.
 
 In order to workaround this, set `NETWORK_HOST` environment variable in the pod descriptors as follows:
+
 ```yaml
 - name: "NETWORK_HOST"
   value: "_eth0:ipv4_" #_p1p1:ipv4_ if interface name is p1p1, _ens4:ipv4_ if interface name is ens4, and so on.
