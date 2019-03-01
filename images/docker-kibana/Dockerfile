@@ -4,7 +4,7 @@ ARG VERSION
 ENV KIBANA_VERSION=$VERSION
 
 ENV NODEJS_VERSION 10.14.1
-ENV LOGTRAIL_VERSION 0.1.30
+ENV LOGTRAIL_VERSION 0.1.31
 
 RUN apt-get update -q && \
     apt-get install -q -y --no-install-recommends ca-certificates curl jq && \

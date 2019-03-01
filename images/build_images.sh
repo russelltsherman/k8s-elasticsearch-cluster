@@ -18,11 +18,12 @@
 # - prometheus_exporter/elasticsearch-exporter-deployment.yaml - "image" line
 
 # Versions
-ES_VERSION=6.6.0
-CURATOR_VERSION=5.6.0
-FLUENTD_VERSION=1.3.3
-CEREBRO_VERSION=0.8.1
-EXPORTER_VERSION=1.0.4rc1
+
+ES_VERSION=6.6.0          # https://github.com/elastic/elasticsearch/releases
+CURATOR_VERSION=5.6.0     # https://github.com/elastic/curator/releases
+FLUENTD_VERSION=1.3.3     # https://github.com/fluent/fluentd/releases
+CEREBRO_VERSION=0.8.1     # https://github.com/lmenezes/cerebro/releases
+EXPORTER_VERSION=1.0.4rc1 # https://github.com/justwatchcom/elasticsearch_exporter/releases
 
 REGISTRY=carlosedp
 

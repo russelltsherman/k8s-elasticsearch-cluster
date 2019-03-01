@@ -426,9 +426,11 @@ data:
           time_key datetime
           time_format %Y-%m-%dT%H:%M:%S%z
         </pattern>
+        <pattern>
+          format none
+        </pattern>
       </parse>
     </filter>
-
     # Avoid duplicate events on busy ES deployments
     # https://github.com/uken/fluent-plugin-elasticsearch/issues/312
     # https://github.com/uken/fluent-plugin-elasticsearch#generate-hash-id

@@ -111,6 +111,12 @@ data:
     # The default locale. This locale can be used in certain circumstances to substitute any missing
     # translations.
     #i18n.defaultLocale: "en"
+    xpack.infra.sources.default.logAlias: 'logstash*'
+    xpack.infra.sources.default.fields.message: ['log','message','@message']
+    xpack.infra.sources.default.fields.host: 'kubernetes.host'
+    xpack.infra.sources.default.fields.pod: 'kubernetes.pod_name'
+    xpack.infra.sources.default.fields.container: 'kubernetes.container_name'
+
   logtrail.json: |
     {
       "version": 1,
