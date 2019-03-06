@@ -439,12 +439,13 @@ data:
       backend_library geoip2_c
 
       <record>
-        geoip.city            ${city.names.en["remote_ip"]}
-        geoip.latitude        ${location.latitude["remote_ip"]}
-        geoip.longitude       ${location.longitude["remote_ip"]}
+        #geoip.location_properties  '{ "lat" : ${location.latitude["remote_ip"]}, "lon" : ${location.longitude["remote_ip"]} }'
+        #geoip.location_string      ${location.latitude["remote_ip"]},${location.longitude["remote_ip"]}
+        geoip.location_array  '[${location.longitude["remote_ip"]},${location.latitude["remote_ip"]}]'
         geoip.country         ${country.iso_code["remote_ip"]}
         geoip.country_name    ${country.names.en["remote_ip"]}
         geoip.postal_code     ${postal.code["remote_ip"]}
+        geoip.city            ${city.names.en["remote_ip"]}
       </record>
 
       skip_adding_null_record  true
@@ -494,5 +495,12 @@ data:
       "settings": {
         "number_of_shards": 3,
         "number_of_replicas": 0
+      },
+      "mappings": {
+        "_default_": {
+          "properties" : {
+            "geoip.location_array": { "type": "geo_point"}
+          }
+        }
       }
     }
