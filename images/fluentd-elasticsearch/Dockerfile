@@ -31,11 +31,12 @@ COPY Gemfile /Gemfile
 # 2. Install fluentd via ruby.
 # 3. Remove build dependencies.
 # 4. Cleanup leftover caches & files.
-RUN BUILD_DEPS="make gcc g++ libc6-dev ruby-dev libffi-dev" \
+RUN BUILD_DEPS="make gcc g++ libc6-dev ruby-dev libffi-dev build-essential automake autoconf libtool" \
     && clean-install $BUILD_DEPS \
                      ca-certificates \
                      libjemalloc1 \
                      ruby \
+                     libgeoip-dev \
     && echo 'gem: --no-document' >> /etc/gemrc \
     && gem install --file Gemfile \
     && apt-get purge -y --auto-remove \
@@ -43,11 +44,21 @@ RUN BUILD_DEPS="make gcc g++ libc6-dev ruby-dev libffi-dev" \
                      $BUILD_DEPS \
     && clean-apt \
     # Ensure fluent has enough file descriptors
-    && ulimit -n 65536
+&& ulimit -n 65536
 
 # Copy the Fluentd configuration file for logging Docker container logs.
 COPY fluent.conf /etc/fluent/fluent.conf
 COPY run.sh /run.sh
+
+# Download GeoLite2 Free Downloadable Databases from MaxMind
+RUN clean-install curl \
+           && curl -LO http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz \
+           && tar -zxvf GeoLite2-City.tar.gz --wildcards *.mmdb --strip-components 1 \
+           && mv GeoLite2-City.mmdb /srv/ \
+           && rm -f GeoLite2-City.tar.gz \
+           && apt-get purge -y --auto-remove \
+                            -o APT::AutoRemove::RecommendsImportant=false \
+                            curl
 
 # Expose prometheus metrics.
 EXPOSE 80

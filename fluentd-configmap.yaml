@@ -431,6 +431,25 @@ data:
         </pattern>
       </parse>
     </filter>
+
+    <filter kubernetes.**>
+      @type geoip
+      geoip_lookup_keys  remote_ip
+      geoip2_database   "/srv/GeoLite2-City.mmdb"
+      backend_library geoip2_c
+
+      <record>
+        geoip.city            ${city.names.en["remote_ip"]}
+        geoip.latitude        ${location.latitude["remote_ip"]}
+        geoip.longitude       ${location.longitude["remote_ip"]}
+        geoip.country         ${country.iso_code["remote_ip"]}
+        geoip.country_name    ${country.names.en["remote_ip"]}
+        geoip.postal_code     ${postal.code["remote_ip"]}
+      </record>
+
+      skip_adding_null_record  true
+    </filter>
+
     # Avoid duplicate events on busy ES deployments
     # https://github.com/uken/fluent-plugin-elasticsearch/issues/312
     # https://github.com/uken/fluent-plugin-elasticsearch#generate-hash-id
