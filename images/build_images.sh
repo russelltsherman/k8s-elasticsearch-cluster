@@ -42,7 +42,11 @@ CPU_ARCH=$(uname -m)
 
 function build_image {
     I=$1
+    echo "Arch: " $2
     ARCH=$CURRENT_ARCH
+    if [[ $ARCH == "" ]]; then
+        ARCH=$2
+    fi
     IMAGE=${IMAGES[$I]}
     VERSION=${VERSIONS[$I]}
     echo "====================================================================="
@@ -107,12 +111,12 @@ fi
 if [[ "$1" == "all" ]]; then
     # Build all images
     for I in $(seq 0 $num_img); do
-        build_image $I
+        build_image $I $2
         push_manifests $I
     done
 else
     # Build specific image
     INDEX=`echo ${IMAGES[@]/$1//} | cut -d/ -f1 | wc -w | tr -d ' '`
-    build_image $INDEX
+    build_image $INDEX $2
     push_manifests $INDEX
 fi
