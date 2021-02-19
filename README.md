@@ -39,9 +39,9 @@ This is the recommended way to deploy ElasticSearch in case your nodes are not C
 ## (Very) Important notes
 
 - Elasticsearch pods need for an init-container to run in privileged mode, so it can set some VM options. For that to happen, the `kubelet` should be running with args `--allow-privileged`, otherwise
-the init-container will fail to run.
+  the init-container will fail to run.
 
-- By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a *low* value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository. In the full-role nodes, all nodes start with 1GB heap.
+- By default, `ES_JAVA_OPTS` is set to `-Xms512m -Xmx512m` for the master node and `-Xms1G -Xmx1G` for the client and data nodes. This is a _low_ value but possible to be used on ARM boards with 4GB of RAM. One can change this in the deployment descriptors available in this repository. In the full-role nodes, all nodes start with 1GB heap.
 
 - In this project,the pods use the Default `StorageClass` for storing data in each data node container. It could be adapted to other storage targets according to one's needs.
 
@@ -68,7 +68,7 @@ This can be uncommented on the `deploy` script or using the instruction below.
 
 Create the namespace and cofiguration:
 
-```bash
+```sh
 kubectl create namespace logging
 alias kctl='kubectl --namespace logging'
 
@@ -77,14 +77,14 @@ kctl apply -f es-configmap.yaml
 
 Or to have a three-node cluster with all roles, use this:
 
-```bash
+```sh
 kctl apply -f es-full-svc.yaml
 kctl apply -f es-full-statefulset.yaml
 ```
 
 To have separate roles on each node, use this:
 
-```bash
+```sh
 # Deploy Elasticsearch master node and wait until it's up
 kctl apply -f ./separate-roles/es-master-svc.yaml
 kctl apply -f ./separate-roles/es-master-statefulset.yaml
@@ -103,7 +103,7 @@ until kctl rollout status statefulset es-data  > /dev/null 2>&1; do sleep 1; pri
 
 This is common to any option:
 
-```bash
+```sh
 # Deploy Curator
 kctl apply -f es-curator-configmap.yaml
 kctl apply -f es-curator-cronjob.yaml
@@ -126,7 +126,7 @@ kctl apply -f fluentd-daemonset.yaml
 Let's check if everything is working properly:
 Check one of the Elasticsearch master nodes logs:
 
-```bash
+```sh
 $ kubectl get svc,deployment,statefulsets,pods -l component=elasticsearch
 NAME                                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
 service/elasticsearch                    NodePort    10.106.88.175   <none>        9200:30230/TCP   73m
@@ -148,7 +148,7 @@ pod/es-master-0   1/1     Running   0          6h46m
 
 Check one of the Elasticsearch master nodes logs:
 
-```bash
+```sh
 $ kubectl logs po/es-master-6f6449b7f-jwbcb
 chown: changing ownership of '/elasticsearch/config/elasticsearch.yml': Read-only file system
 [2019-01-16T14:06:37,974][WARN ][o.e.c.l.LogConfigurator  ] [es-master-0] Some logging configurations have %marker but don't have %node_name. We will automatically add %node_name to the pattern to ease the migration for users who customize log4j2.properties but will stop this behavior in 7.0. You should manually replace `%node_name` with `[%node_name]%marker ` in these locations:
@@ -201,11 +201,11 @@ As we can assert, the cluster is up and running. Easy, wasn't it?
 
 ### Access the service
 
--Don't forget* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
+-Don't forget\* that services in Kubernetes are only acessible from containers in the cluster. For different behavior one should [configure the creation of an external load-balancer](https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer) or use an ingress as currently included in the project.
 
--Note:* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can add the field in `es-ingest-svc.yaml`.
+-Note:\* if you are using one of the cloud providers which support external load balancers, setting the type field to "LoadBalancer" will provision a load balancer for your Service. You can add the field in `es-ingest-svc.yaml`.
 
-```bash
+```sh
 $ kubectl get svc elasticsearch
 NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 elasticsearch   ClusterIP   10.100.220.56   <none>        9200/TCP   3m
@@ -213,7 +213,7 @@ elasticsearch   ClusterIP   10.100.220.56   <none>        9200/TCP   3m
 
 From any host on the Kubernetes cluster (that's running `kube-proxy` or similar), run:
 
-```bash
+```sh
 curl http://10.100.220.56:9200
 ```
 
@@ -221,27 +221,27 @@ One should see something similar to the following:
 
 ```json
 {
-  "name" : "es-ingest-0",
-  "cluster_name" : "myesdb",
-  "cluster_uuid" : "y_wU9c5rRZKqRF8jlxKJMg",
-  "version" : {
-    "number" : "6.5.4",
-    "build_flavor" : "default",
-    "build_type" : "tar",
-    "build_hash" : "d2ef93d",
-    "build_date" : "2018-12-17T21:17:40.758843Z",
-    "build_snapshot" : false,
-    "lucene_version" : "7.5.0",
-    "minimum_wire_compatibility_version" : "5.6.0",
-    "minimum_index_compatibility_version" : "5.0.0"
+  "name": "es-ingest-0",
+  "cluster_name": "myesdb",
+  "cluster_uuid": "y_wU9c5rRZKqRF8jlxKJMg",
+  "version": {
+    "number": "6.5.4",
+    "build_flavor": "default",
+    "build_type": "tar",
+    "build_hash": "d2ef93d",
+    "build_date": "2018-12-17T21:17:40.758843Z",
+    "build_snapshot": false,
+    "lucene_version": "7.5.0",
+    "minimum_wire_compatibility_version": "5.6.0",
+    "minimum_index_compatibility_version": "5.0.0"
   },
-  "tagline" : "You Know, for Search"
+  "tagline": "You Know, for Search"
 }
 ```
 
 Or if one wants to see cluster information:
 
-```bash
+```sh
 curl http://10.100.220.56:9200/_cluster/health?pretty
 ```
 
@@ -249,21 +249,21 @@ One should see something similar to the following:
 
 ```json
 {
-  "cluster_name" : "myesdb",
-  "status" : "green",
-  "timed_out" : false,
-  "number_of_nodes" : 4,
-  "number_of_data_nodes" : 2,
-  "active_primary_shards" : 70,
-  "active_shards" : 138,
-  "relocating_shards" : 0,
-  "initializing_shards" : 0,
-  "unassigned_shards" : 0,
-  "delayed_unassigned_shards" : 0,
-  "number_of_pending_tasks" : 0,
-  "number_of_in_flight_fetch" : 0,
-  "task_max_waiting_in_queue_millis" : 0,
-  "active_shards_percent_as_number" : 100.0
+  "cluster_name": "myesdb",
+  "status": "green",
+  "timed_out": false,
+  "number_of_nodes": 4,
+  "number_of_data_nodes": 2,
+  "active_primary_shards": 70,
+  "active_shards": 138,
+  "relocating_shards": 0,
+  "initializing_shards": 0,
+  "unassigned_shards": 0,
+  "delayed_unassigned_shards": 0,
+  "number_of_pending_tasks": 0,
+  "number_of_in_flight_fetch": 0,
+  "task_max_waiting_in_queue_millis": 0,
+  "active_shards_percent_as_number": 100.0
 }
 ```
 
@@ -283,33 +283,33 @@ spec:
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: component
-              operator: In
-              values:
-              - elasticsearch
-            - key: role
-              operator: In
-              values:
-              - data
-          topologyKey: kubernetes.io/hostname
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                    - elasticsearch
+                - key: role
+                  operator: In
+                  values:
+                    - data
+            topologyKey: kubernetes.io/hostname
   containers:
-  - (...)
+    - (...)
 ```
 
 ## Availability
 
 If one wants to ensure that no more than `n` Elasticsearch nodes will be unavailable at a time, one can optionally (change and) apply the following manifests:
 
-```bash
+```sh
 kubectl create -f pdb/es-master-pdb.yaml
 kubectl create -f pdb/es-data-pdb.yaml
 ```
 
--*Note:** This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
+-\*Note:\*\* This is an advanced subject and one should only put it in practice if one understands clearly what it means both in the Kubernetes and Elasticsearch contexts. For more information, please consult [Pod Disruptions](https://kubernetes.io/docs/concepts/workloads/pods/disruptions).
 
 ## Install plug-ins
 
@@ -326,14 +326,14 @@ This is not tested in current image, please report on Issues any errors or succe
 
 Additionally, one can run a [CronJob](http://kubernetes.io/docs/user-guide/cron-jobs/) that will periodically run [Curator](https://github.com/elastic/curator) to clean up indices (or do other actions on the Elasticsearch cluster).
 
-```bash
+```sh
 kubectl create -f es-curator-config.yaml
 kubectl create -f es-curator_v1beta1.yaml
 ```
 
 Please, confirm the job has been created.
 
-```bash
+```sh
 $ kubectl get cronjobs
 NAME      SCHEDULE    SUSPEND   ACTIVE    LAST-SCHEDULE
 curator   1 0 * * *   False     0         <none>
@@ -341,7 +341,7 @@ curator   1 0 * * *   False     0         <none>
 
 The job is configured to run once a day at _1 minute past midnight and delete indices that are older than 30 days_.
 
--*Notes**
+-\*Notes\*\*
 
 - One can change the schedule by editing the cron notation in `es-curator-cronjob.yaml`.
 - One can change the action (e.g. delete older than 3 days) by editing the `es-curator-configmap.yaml`.
@@ -349,7 +349,7 @@ The job is configured to run once a day at _1 minute past midnight and delete in
 
 If one wants to remove the curator job, just run:
 
-```bash
+```sh
 kubectl delete cronjob curator
 kubectl delete configmap curator-config
 ```
@@ -377,7 +377,7 @@ Read a different config file by settings env var `ES_PATH_CONF=/path/to/my/confi
 
 One of the errors one may come across when running the setup is the following error:
 
-```bash
+```sh
 [2016-11-29T01:28:36,515][WARN ][o.e.b.ElasticsearchUncaughtExceptionHandler] [] uncaught exception in thread [main]
 org.elasticsearch.bootstrap.StartupException: java.lang.IllegalArgumentException: No up-and-running site-local (private) addresses found, got [name:lo (lo), name:eth0 (eth0)]
 at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:116) ~[elasticsearch-5.0.1.jar:5.0.1]
@@ -408,7 +408,7 @@ at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:112) ~[elas
 [2016-11-29T01:28:37,464][INFO ][o.e.n.Node               ] [kIEYQSE] closed
 ```
 
-This is related to how the container binds to network ports (defaults to ``_local_``). It will need to match the actual node network interface name, which depends on what OS and infrastructure provider one uses. For instance, if the primary interface on the node is `p1p1` then that is the value that needs to be set for the `NETWORK_HOST` environment variable.
+This is related to how the container binds to network ports (defaults to `_local_`). It will need to match the actual node network interface name, which depends on what OS and infrastructure provider one uses. For instance, if the primary interface on the node is `p1p1` then that is the value that needs to be set for the `NETWORK_HOST` environment variable.
 Please see [the documentation](https://github.com/pires/docker-elasticsearch#environment-variables) for reference of options.
 
 In order to workaround this, set `NETWORK_HOST` environment variable in the pod descriptors as follows:

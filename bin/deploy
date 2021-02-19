@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+if [ -z "${KUBECONFIG}" ]; then
+    export KUBECONFIG=~/.kube/config
+fi
+
+# CAUTION - setting NAMESPACE will deploy most components to the given namespace
+# however some are hardcoded to 'monitoring'. Only use if you have reviewed all manifests.
+
+if [ -z "${NAMESPACE}" ]; then
+    NAMESPACE=logging
+fi
+
+kubectl create namespace "$NAMESPACE"
+
+kctl() {
+    kubectl --namespace "$NAMESPACE" "$@"
+}
+# alias kctl='kubectl --namespace logging'
+
+# Deploy ElasticSearch configmap
+kctl apply -f $DIR/../services/elasticsearch/k8s/configmap.yaml
+
+# As an alternative, replace  master, client and data manifests applied above
+# with the ones below to have a three-node cluster with all roles in all nodes.
+kctl apply -f $DIR/../services/elasticsearch/k8s/full-svc.yaml
+kctl apply -f $DIR/../services/elasticsearch/k8s/full-statefulset.yaml
+until kctl rollout status statefulset es-full  > /dev/null 2>&1; do sleep 1; printf "."; done
+
+# Deploy Curator
+kctl apply -f $DIR/../services/curator/k8s/curator.yaml
+
+# Deploy Cerebro
+kctl apply -f $DIR/../services/cerebro/k8s/cerebro.yaml
+
+# Deploy Kibana
+kctl apply -f $DIR/../services/kibana/k8s/configmap.yaml
+kctl apply -f $DIR/../services/kibana/k8s/service.yaml
+kctl apply -f $DIR/../services/kibana/k8s/deployment.yaml
+kctl apply -f $DIR/../services/kibana/k8s/external-ingress.yaml
+
+# Deploy Fluentd
+kctl apply -f $DIR/../services/fluentd/k8s/configmap.yaml
+kctl apply -f $DIR/../services/fluentd/k8s/daemonset.yaml
+kctl apply -f $DIR/../services/fluentd/k8s/servicemonitor.yaml
+
+echo "done!"

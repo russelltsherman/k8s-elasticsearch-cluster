@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+if [ -z "${KUBECONFIG}" ]; then
+    export KUBECONFIG=~/.kube/config
+fi
+
+# CAUTION - setting NAMESPACE will deploy most components to the given namespace
+# however some are hardcoded to 'monitoring'. Only use if you have reviewed all manifests.
+
+if [ -z "${NAMESPACE}" ]; then
+    NAMESPACE=logging
+fi
+
+kctl() {
+    kubectl --namespace "$NAMESPACE" "$@"
+}
+
+# Delete Fluentd
+kctl delete -f $DIR/../services/fluentd/k8s/configmap.yaml
+kctl delete -f $DIR/../services/fluentd/k8s/daemonset.yaml
+kctl delete -f $DIR/../services/fluentd/k8s/servicemonitor.yaml
+
+# Delete Kibana
+kctl delete -f $DIR/../services/kibana/k8s/configmap.yaml
+kctl delete -f $DIR/../services/kibana/k8s/service.yaml
+kctl delete -f $DIR/../services/kibana/k8s/deployment.yaml
+kctl delete -f $DIR/../services/kibana/k8s/external-ingress.yaml
+
+# Delete Curator
+kctl delete -f $DIR/../services/curator/k8s/curator.yaml
+
+# Delete Elasticsearch services
+kctl delete -f $DIR/../services/elasticsearch/k8s/full-svc.yaml
+kctl delete -f $DIR/../services/elasticsearch/k8s/full-statefulset.yaml
+
+# Delete Cerebro
+kctl delete -f $DIR/../services/cerebro/k8s/cerebro.yaml
+
+# Delete namespace
+kubectl delete namespace $NAMESPACE
+
+# Delete ElasticSearch configmap
+kctl delete -f $DIR/../services/elasticsearch/k8s/configmap.yaml
+
+echo "done!"
+
+# As an alternative, replace  master, client and data manifests applied above
+# with the ones below to have a three-node cluster with all roles in all nodes.
+
+# Deploy Kibana
+# Deploy Fluentd

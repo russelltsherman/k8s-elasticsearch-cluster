@@ -1,0 +1,22 @@
+#! /usr/bin/env bash
+
+CPU_ARCH=$(uname -m)
+
+case $CPU_ARCH in
+x86_64)
+  echo "amd64"
+  ;;
+
+aarch64)
+  echo "arm64"
+  ;;
+
+armv7l)
+  echo "armv7"
+  ;;
+
+*)
+  echo $CPU_ARCH
+  exit 1
+  ;;
+esac
